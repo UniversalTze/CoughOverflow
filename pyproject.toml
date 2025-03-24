@@ -1,0 +1,17 @@
+[project]
+name = "cough-overflow-api"
+version = "0.1.0"
+description = "Cough-Overflow API Development"
+authors = [
+    {name = "Tze Kheng Goh",email = "dgoh03625@yahoo.com"}
+]
+readme = "README.md"
+requires-python = ">3.8"
+dependencies = [
+    "fastapi (>=0.115.12,<0.116.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
