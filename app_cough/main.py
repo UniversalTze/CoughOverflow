@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from app_cough import healthrouter, labrouter
 from .models import engine, seed_labs, Base, dbmodels, SessionLocal
 
+#Command to start app, might need to SH.
+# uvicorn app_cough.main:app --port 6400
 app = FastAPI()
 
 @app.on_event("startup")
@@ -15,7 +17,6 @@ def on_startup():
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of main.py
         file_path = os.path.join(base_dir, "labs.csv")  # Correct file path
         seed_labs(file_path)
-# Update function to remove BOM from ids
 
 app.include_router(healthrouter, prefix="/api/v1")
 app.include_router(labrouter, prefix="/api/v1")
