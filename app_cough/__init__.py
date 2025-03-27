@@ -1,4 +1,4 @@
 # app/__init__.py 
 # Handling imports
 
-from app_cough.views.routes import router
+from app_cough.views.healthroute import healthrouter

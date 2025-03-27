@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
-router = APIRouter()
+labrouter = APIRouter()
 
-@router.get('/health')
-def get_health():
+@labrouter.get('/labs')
+def get_labs():
     #health logic will come when db and other services are added
-    return {"status": "ok"}
+    return {[]}
