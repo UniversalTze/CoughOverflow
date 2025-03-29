@@ -1,8 +1,33 @@
+from enum import Enum
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 #For response schemas
 class Labs(BaseModel): 
     labs: List[str]
     class Config:
-        orm_mode = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
+        from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
+
+class AnalysisPost(BaseModel): 
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    status: str
+
+    class Config:
+        from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
+
+class ErrorType(Enum): 
+    missing_patient_id = "Could not find patient ID"
+    invalid_pateint_id =  "Incorrect format of patient ID"
+    missing_lab_id = "Could not find Lab ID in DB"
+    invalid_lab_id = "Not apart of the definitive labs"
+    no_image = "Could not find Image"
+    invalid_image = "Image needs to between this range(KB): 4  < img_size < 150"
+    unknown_error = "Unknown error occured when processing Post" 
+
+
+class AnalysisPostError(BaseModel): 
+    error: str   # Should be an enum from the list. 
+    detail: str   # Additional info about the error. 
