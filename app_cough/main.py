@@ -1,7 +1,7 @@
 import os
 import psycopg2
 from fastapi import FastAPI
-from app_cough import healthrouter, labrouter
+from app_cough import healthrouter, labrouter, analysisrouter
 from .models import engine, seed_labs, Base, dbmodels, SessionLocal
 
 #Command to start app, might need to SH.
@@ -20,3 +20,4 @@ def on_startup():
 
 app.include_router(healthrouter, prefix="/api/v1")
 app.include_router(labrouter, prefix="/api/v1")
+app.include_router(analysisrouter, prefix="/api/v1")

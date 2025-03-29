@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from .database import Base
 
 ## DATABASE model
@@ -8,6 +8,7 @@ class Labs(Base):
 
 class Request(Base): 
     __tablename__ = 'request'
-    patient_id = Column(String, primary_key=True)
+    request_id = Column(String, primary_key=True)
+    patient_id = Column(String, index=True)
     lab_id = Column(String, index=True)
-    urgent = Column(bool)
+    urgent = Column(Boolean, default=False)
