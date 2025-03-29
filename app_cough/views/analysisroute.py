@@ -1,4 +1,5 @@
-import base64
+import base64, uuid
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -46,10 +47,32 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = create_error(schemas.ErrorType.invalid_image)
         return JSONResponse(status_code=400, 
                             content=error)
+    
+    labs = crud.get_valid_labs(db) # list of all object items
+    ids = set(lab.id for lab in labs)
+    if (lab_id not in ids): 
+        error = create_error(schemas.ErrorType.invalid_lab_id)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
+    request = dbmodels.Request(
+        request_id=str(uuid.uuid4()),
+        lab_id = lab_id,
+        patient_id=patient_id,
+        result="pending",
+        urgent=urgent,
 
-    
-    
-    return 200
+    )
+    db.add(request)
+    db.commit()
+    message = schemas.AnalysisPost(
+        id=request.request_id,
+        created_at=request.created_at,
+        updated_at=request.created_at,
+        status=request.updated_at
+    )
+    return JSONResponse(status_code=201, content=message.dict())
+    #Post 201 into database now
 
 def create_error(incorrect: schemas.ErrorType): 
     invalid = schemas.AnalysisPostError(error=incorrect.name, detail=incorrect.value)

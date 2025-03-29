@@ -7,5 +7,5 @@ labrouter = APIRouter()
 
 @labrouter.get('/labs', response_model=schemas.Labs)
 def get_labs(db:Session = Depends(get_db)):
-    result = crud.get_labs(db)
+    result = crud.get_lab_ids(db)
     return {"labs": [lab.id for lab in result]}

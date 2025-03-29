@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean
 from .database import Base
-
+from datetime import datetime, timezone
 ## DATABASE model
 class Labs(Base):
     __tablename__ = 'labs'
@@ -9,6 +9,11 @@ class Labs(Base):
 class Request(Base): 
     __tablename__ = 'request'
     request_id = Column(String, primary_key=True)
-    patient_id = Column(String, index=True)
-    lab_id = Column(String, index=True)
-    urgent = Column(Boolean, default=False)
+    lab_id = Column(String, index=True, nullable=False)
+    patient_id = Column(String, index=True, nullable=False)
+    result = Column(String, default="pending", nullable=False)
+    urgent = Column(Boolean, default=False, nullable=False)
+    created_at = Column(String, nullable=False, default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))
+    updated_at = Column(String, nullable=False, 
+                        default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'), 
+                        onupdate=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))

@@ -11,8 +11,8 @@ class Labs(BaseModel):
 
 class AnalysisPost(BaseModel): 
     id: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: str
+    updated_at: str
     status: str
 
     class Config:
