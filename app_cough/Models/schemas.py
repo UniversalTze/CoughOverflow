@@ -16,6 +16,15 @@ class Labs(BaseModel):
     class Config:
         from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
 
+class AnalysisGet(BaseModel): 
+    request_id: str
+    lab_ib: str
+    patient_id: str
+    result: str
+    urgent: bool
+    created_at: str
+    updated_at: str
+
 class AnalysisPost(BaseModel): 
     id: str
     created_at: str
