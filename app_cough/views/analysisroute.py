@@ -9,8 +9,8 @@ from app_cough.models import schemas, crud, dbmodels, database, get_db
 from typing import Union
 
 LENGTH_PATIENT_ID = 11
-MIN_KB = 4 * 1024
-MAX_KB = 15 * 1024
+MIN_KB = 4 * 1000
+MAX_KB = 15 * 1000
 
 analysisrouter = APIRouter()
 
