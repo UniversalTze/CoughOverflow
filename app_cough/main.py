@@ -1,12 +1,34 @@
 import os
 import psycopg2
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter
-from .models import engine, seed_labs, Base, dbmodels, SessionLocal
+from .models import engine, seed_labs, Base, dbmodels, SessionLocal, schemas
 
 #Command to start app, might need to SH.
 # uvicorn app_cough.main:app --port 6400
 app = FastAPI()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+@app.exception_handler(Exception)
+def generic_exception_handler(request: Request, exc: Exception):
+    # Log the error with details
+    logger.error(f"Unexpected error occurred: {exc}")
+    
+    # Return a graceful JSON response with a 500 status code
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": schemas.ErrorTypeEnum.unknown_error.name,
+            "message": schemas.ErrorTypeEnum.value,
+            "details": str(exc) 
+            # Optional: Include the exception message in the response for debugging purposes
+        }
+    )
 
 @app.on_event("startup")
 def on_startup():
