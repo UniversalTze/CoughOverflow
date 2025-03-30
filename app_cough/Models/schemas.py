@@ -4,6 +4,8 @@ from typing import List
 from datetime import datetime
 
 #For response schemas
+
+##### Status
 class StatusEnum(Enum): 
     PENDING = "pending"
     COVID = "covid"
@@ -11,11 +13,14 @@ class StatusEnum(Enum):
     HEALTHY = "healthy"
     FAILED = "failed"
 
+##### Labs
 class Labs(BaseModel): 
     labs: List[str]
     class Config:
         from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
 
+
+##### Analysis
 class Analysis(BaseModel): 
     request_id: str
     lab_id: str
@@ -34,6 +39,8 @@ class AnalysisPost(BaseModel):
     class Config:
         from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
 
+
+###### Errors
 class ErrorTypeEnum(Enum): 
     missing_patient_id = "Could not find patient ID"
     invalid_pateint_id =  "Incorrect format of patient ID"
