@@ -78,10 +78,10 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         return JSONResponse(status_code=500, 
                                 content=error)
 
-# "0d8b018f-5113-431d-a96e-1f6320a258e3" -> QML
-# "bf090fef-e195-4cb0-ae1b-be73c7d02616" -> ACL4013
+# "0d8b018f-5113-431d-a96e-1f6320a258e3" -> QML 
+# "bf090fef-e195-4cb0-ae1b-be73c7d02616" -> ACL4013 (been updated twice so different time stamp)
 
-@analysisrouter.get('/analysis', response_model= schemas.AnalysisGet) 
+@analysisrouter.get('/analysis', response_model= schemas.Analysis) 
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         result = crud.get_requests(db, request_id)
@@ -89,9 +89,9 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
             return JSONResponse(status_code=404, 
                                     content= {
                                         "error": "request id not found",
-                                        "detail": "request id not foudn in database"
+                                        "detail": "request id not found in database"
                                     })
-        info =  schemas.AnalysisGet(
+        info = schemas.Analysis(
                 request_id=result.request_id,
                 lab_id=result.lab_id,
                 patient_id=result.patient_id,
@@ -106,6 +106,36 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
         error = create_error(schemas.ErrorTypeEnum.unknown_error)
         return JSONResponse(status_code=500, 
                                 content=error)
+    
+@analysisrouter.put('/analysis') # response_model= Union[schemas.AnalysisPost, schemas.AnalysisUpdateError])
+def update_request(request_id: str = Query(...), lab_id: str = Query(...), db: Session = Depends(get_db)):
+    labs = crud.get_valid_labs(db) # list of all object items
+    ids = set(lab.id for lab in labs)
+    if (lab_id not in ids):
+        error = schemas.AnalysisUpdateError(detail="Invalid lab identifier.")
+        return JSONResponse(status_code=400, 
+                            content=error.dict())
+    req = crud.get_requests(db, request_id) # For request id
+    if req is None: 
+        return JSONResponse(status_code=404, 
+                                content= {
+                                    "error": "request id not found",
+                                    "detail": "request id not found in database"
+                                })
+    # there is a result id and lab is valid, need to update the row. 
+    data = {
+        "request_id": request_id,
+        "lab_id": lab_id
+    }
+    result = crud.update_requests(db, req, data)
+    info = schemas.Analysis(request_id=result.request_id,
+                lab_id=result.lab_id,
+                patient_id=result.patient_id,
+                result=result.result,
+                urgent=result.urgent,
+                created_at=result.created_at,
+                updated_at=result.updated_at)
+    return JSONResponse(status_code=200, content=info.dict())
 
 def create_error(incorrect: schemas.ErrorTypeEnum): 
     invalid = schemas.AnalysisPostError(error=incorrect.name, detail=incorrect.value)

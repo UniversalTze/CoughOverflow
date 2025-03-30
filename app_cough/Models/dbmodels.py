@@ -18,3 +18,15 @@ class Request(Base):
                         default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'), 
                         onupdate=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))
     img_data = Column(String, nullable=False)
+
+    def to_dict(self): 
+        return { 
+            "request_id": self.request_id,
+            "lab_id": self.lab_id,
+            "patient_id": self.patient_id,
+            "result": self.result, 
+            "urgent": self.urgent,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "img_data": self.img_data
+        }
