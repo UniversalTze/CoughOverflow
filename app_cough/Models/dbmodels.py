@@ -27,5 +27,4 @@ class Request(Base):
             "urgent": self.urgent,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
-            "img_data": self.img_data
         }
