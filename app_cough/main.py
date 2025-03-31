@@ -35,13 +35,15 @@ def generic_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def on_startup():
     dbmodels.Base.metadata.create_all(bind=engine)
+    
+    path, _ =  urllib.request.urlretrieve("https://csse6400.uqcloud.net/resources/labs.csv", "./app_cough/labs.csv")
 
     db = SessionLocal()
     if db.query(dbmodels.Labs).count() == 0:
         base_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of main.py
         file_path = os.path.join(base_dir, "labs.csv")  # Correct file path
         seed_labs(file_path)
-
+    
 app.include_router(healthrouter, prefix="/api/v1")
 app.include_router(labrouter, prefix="/api/v1")
 app.include_router(analysisrouter, prefix="/api/v1")

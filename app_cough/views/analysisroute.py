@@ -74,9 +74,6 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     )
     return JSONResponse(status_code=201, content=message.dict())
 
-# "0d8b018f-5113-431d-a96e-1f6320a258e3" -> QML 
-# "bf090fef-e195-4cb0-ae1b-be73c7d02616" -> ACL4013 (been updated twice so different time stamp)
-
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
     result = crud.get_requests(db, request_id)
