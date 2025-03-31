@@ -64,3 +64,6 @@ overflowengine
 labs.csv
 
 .DS_Store
+
+# Test images
+test-images/*
