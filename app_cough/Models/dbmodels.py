@@ -17,7 +17,6 @@ class Request(Base):
     updated_at = Column(String, nullable=False, 
                         default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'), 
                         onupdate=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))
-    img_data = Column(String, nullable=False)
 
     def to_dict(self): 
         return { 

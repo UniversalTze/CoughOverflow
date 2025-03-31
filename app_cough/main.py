@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import logging
+import urllib.request # Downloading CSV file 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter
@@ -30,6 +31,7 @@ def generic_exception_handler(request: Request, exc: Exception):
         }
     )
 
+# @TODO Download labs.csv from https://csse6400.uqcloud.net/resources/labs.csv (run time) 
 @app.on_event("startup")
 def on_startup():
     dbmodels.Base.metadata.create_all(bind=engine)
