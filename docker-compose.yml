@@ -1,0 +1,26 @@
+services:
+  database:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: superSecretPassword.23
+      POSTGRES_USER: cough_user
+      POSTGRES_DB: cough
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cough_user -d cough"]
+      interval: 5s
+      retries: 10
+      start_period: 60s
+      timeout: 20s
+  app:
+    build: .
+    restart: always
+    environment:
+      SQLALCHEMY_DATABASE_URI: "postgresql:\
+        //cough_user:superSecretPassword.23@database:5432/cough"
+    ports:
+      - "8080:6400"
+    depends_on:
+      database:
+        condition: service_healthy
+        restart: true
