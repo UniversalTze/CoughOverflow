@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 from . import dbmodels, schemas
 
 # Create, Read, Update and Delete Operations with database
+
+def get_single_lab(db: Session): 
+    return db.query(dbmodels.Labs).first()
+
 def get_valid_labs(db: Session):
     return db.query(dbmodels.Labs).all()
 
