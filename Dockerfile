@@ -19,5 +19,5 @@ RUN pipx run poetry install --no-root
 COPY app_cough app_cough
 
 CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", \
-    "--host", "0.0.0.0", "--port", "8080"]
+    "--host", "0.0.0.0", "--port", "6400"]
 

@@ -25,7 +25,6 @@ def generic_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "error": schemas.ErrorTypeEnum.unknown_error.name,
-            "message": schemas.ErrorTypeEnum.value,
             "details": str(exc) 
             # Optional: Include the exception message in the response for debugging purposes
         }

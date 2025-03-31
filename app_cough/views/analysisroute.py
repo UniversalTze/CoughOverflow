@@ -59,8 +59,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         lab_id = lab_id,
         patient_id=patient_id,
         result=schemas.StatusEnum.PENDING.value,
-        urgent=urgent,
-        img_data=image
+        urgent=urgent
     )
     db.add(request)
     db.commit()
