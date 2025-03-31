@@ -31,7 +31,6 @@ def generic_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# @TODO Download labs.csv from https://csse6400.uqcloud.net/resources/labs.csv (run time) 
 @app.on_event("startup")
 def on_startup():
     dbmodels.Base.metadata.create_all(bind=engine)

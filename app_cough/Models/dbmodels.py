@@ -7,7 +7,7 @@ class Labs(Base):
     id = Column(String, primary_key=True)
 
 class Request(Base): 
-    __tablename__ = 'request'
+    __tablename__ = 'requests'
     request_id = Column(String, primary_key=True)
     lab_id = Column(String, index=True, nullable=False)
     patient_id = Column(String, index=True, nullable=False)
