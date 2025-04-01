@@ -29,6 +29,9 @@ class Analysis(BaseModel):
     urgent: bool
     created_at: str
     updated_at: str
+    
+    class Config:
+        from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
 
 class AnalysisPost(BaseModel): 
     id: str
@@ -39,6 +42,9 @@ class AnalysisPost(BaseModel):
     class Config:
         from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
 
+###### Results
+class ResultPatient(BaseModel): 
+    results: List[Analysis]
 
 ###### Errors
 class ErrorTypeEnum(Enum): 

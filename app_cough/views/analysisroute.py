@@ -88,8 +88,8 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
             patient_id=result.patient_id,
             result=result.result,
             urgent=result.urgent,
-            created_at=result.created_at,
-            updated_at=result.updated_at
+            created_at=result.created_at.isoformat(timespec='seconds') + 'Z',
+            updated_at=result.updated_at.isoformat(timespec='seconds') + 'Z',
         )
     return JSONResponse(status_code=200, 
                                 content=info.dict())
@@ -120,8 +120,8 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...), db: S
                 patient_id=result.patient_id,
                 result=result.result,
                 urgent=result.urgent,
-                created_at=result.created_at,
-                updated_at=result.updated_at)
+                created_at=result.created_at.isoformat(timespec='seconds') + 'Z',
+                updated_at=result.updated_at.isoformat(timespec='seconds') + 'Z')
     return JSONResponse(status_code=200, content=info.dict())
 
 def create_error(incorrect: schemas.ErrorTypeEnum): 

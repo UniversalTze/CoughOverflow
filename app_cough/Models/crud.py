@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 from . import dbmodels, schemas
 
 # Create, Read, Update and Delete Operations with database
+START_DATE =  "start_date"
+END_DATE = "end_date"
+STATUS = "status"
+URGENT = "urgent"
 
 def get_single_lab(db: Session): 
     return db.query(dbmodels.Labs).first()
@@ -15,6 +19,32 @@ def get_lab_ids(db: Session):
 def get_requests(db:Session, request: str): #should only be one entry of req id as primary key
     return db.query(dbmodels.Request).filter(dbmodels.Request.request_id == request).first()
 
+def get_patient_id(db: Session, patient:str):
+    return db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == patient).first()
+
+def get_patient_results(db: Session, required_param, optional_params: dict):
+    query = db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == required_param)
+
+    if (optional_params[START_DATE] is not None): 
+        query = query.filter(dbmodels.Request.created_at >= optional_params[START_DATE])
+
+    if (optional_params[END_DATE] is not None): 
+        query = query.filter(dbmodels.Request.created_at <= optional_params[END_DATE])
+
+    if (optional_params[STATUS] is not None):
+        stat = determine_status(optional_params[STATUS])
+        query = query.filter(dbmodels.Request.result == stat.value)
+
+    if (optional_params[URGENT] is not None):
+        query = query.filter(dbmodels.Request.urgent == optional_params[URGENT])
+
+    return query.all() # For now.
+
+def determine_status(status: str):
+    for enums in schemas.StatusEnum:
+        if enums.value == status: 
+            return enums
+        
 def update_requests(db: Session, requestObj, toUpdate: dict):
     for key, value in toUpdate.items():
         setattr(requestObj, key, value)
