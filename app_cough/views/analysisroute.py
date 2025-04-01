@@ -53,7 +53,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    now = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
+    
     request = dbmodels.Request(
         request_id=str(uuid.uuid4()),
         lab_id = lab_id,
@@ -67,8 +67,8 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     # @TODO need to fork a process here to exec Cough Overflow engine. (function in crud.py) 
     message = schemas.AnalysisPost(
         id=request.request_id,
-        created_at=request.created_at,
-        updated_at=request.created_at,
+        created_at=request.created_at.isoformat(timespec='seconds') + 'Z',
+        updated_at=request.created_at.isoformat(timespec='seconds') + 'Z',
         status=request.result
     )
     return JSONResponse(status_code=201, content=message.dict())

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, DateTime
 from .database import Base
 from datetime import datetime, timezone
 ## DATABASE model
@@ -13,10 +13,10 @@ class Request(Base):
     patient_id = Column(String, index=True, nullable=False)
     result = Column(String, default="pending", nullable=False)
     urgent = Column(Boolean, default=False, nullable=False)
-    created_at = Column(String, nullable=False, default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))
-    updated_at = Column(String, nullable=False, 
-                        default=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'), 
-                        onupdate=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'))
+    created_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, nullable=False, 
+                        default=datetime.now(timezone.utc), 
+                        onupdate=datetime.now(timezone.utc))
 
     def to_dict(self): 
         return { 
