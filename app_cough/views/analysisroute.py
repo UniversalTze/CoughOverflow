@@ -1,12 +1,13 @@
 import base64, uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
 from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 from app_cough.models import schemas, crud, dbmodels, database, get_db
 from typing import Union
+from app_cough import utils
 
 LENGTH_PATIENT_ID = 11
 MIN_KB = 4 * 1000
@@ -14,12 +15,27 @@ MAX_KB = 15 * 1000
 
 analysisrouter = APIRouter()
 
-@analysisrouter.post('/analysis', response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError]) # Need create
+@analysisrouter.post('/analysis', response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError])
 def create_analysis(patient_id: str = Query(None, description="patient_id"), 
                     lab_id: str = Query(None, description="lab_id"), 
                     urgent: bool = Query(None, description="urgent"),
                     body: dict = Body(None), 
-                    db: Session = Depends(get_db)):
+                    db: Session = Depends(get_db), 
+                    request: Request= None): 
+    query = {"patient_id", "lab_id", "urgent"}
+    req_body = {"image"}
+    query_params = request.query_params
+    if not utils.validate_query_or_body(query_params, required=query):
+        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    given_body = [param for param in body]
+
+    if not utils.validate_query_or_body(given_params=given_body, required=req_body):
+        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        return JSONResponse(status_code=400, 
+                            content=error)
+
     if patient_id is None:
         error = create_error(schemas.ErrorTypeEnum.missing_patient_id)
         return JSONResponse(status_code=400, 
@@ -74,7 +90,14 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
-def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
+def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
+    query = {"request_id"}
+    query_params = request.query_params 
+    if not utils.validate_query_or_body(query_params, query):
+        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
     result = crud.get_requests(db, request_id)
     if result is None:
         return JSONResponse(status_code=404, 
@@ -95,7 +118,15 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db)):
                                 content=info.dict())
     
 @analysisrouter.put('/analysis') # response_model= Union[schemas.AnalysisPost, schemas.AnalysisUpdateError])
-def update_request(request_id: str = Query(...), lab_id: str = Query(...), db: Session = Depends(get_db)):
+def update_request(request_id: str = Query(...), lab_id: str = Query(...), 
+                   db: Session = Depends(get_db), request: Request= None): 
+    query = {"patient_id", "lab_id"}
+    query_params = request.query_params 
+    if not utils.validate_query_or_body(given_params=query_params, required=query):
+        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
     labs = crud.get_valid_labs(db) # list of all object items
     ids = set(lab.id for lab in labs)
     if (lab_id not in ids):

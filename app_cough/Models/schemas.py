@@ -55,6 +55,8 @@ class ErrorTypeEnum(Enum):
     no_image = "Could not find Image"
     invalid_image = "Image needs to between this range(KB): 4  < img_size < 150"
     unknown_error = "Unknown error occured when processing request" 
+    invalid_query = "Query parameters are malformed. Please check!"
+    invalid_body = "Body arguments are malformed. Please check!"
 
 class AnalysisPostError(BaseModel): 
     error: str   # Should be an enum from the list. 
