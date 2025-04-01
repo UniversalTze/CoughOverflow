@@ -1,5 +1,4 @@
 import base64, uuid
-from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -25,13 +24,13 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     query = {"patient_id", "lab_id", "urgent"}
     req_body = {"image"}
     query_params = request.query_params
-    if not utils.validate_query_or_body(query_params, required=query):
+    if not utils.validate_query(query_params, required=query):
         error = create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
-    given_body = [param for param in body]
-
-    if not utils.validate_query_or_body(given_params=given_body, required=req_body):
+    
+    given_body = [params for params in body]
+    if not utils.validate_body(args=given_body, required=req_body) or isinstance(body, list):
         error = create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -93,7 +92,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
     query = {"request_id"}
     query_params = request.query_params 
-    if not utils.validate_query_or_body(query_params, query):
+    if not utils.validate_query(query_params, query):
         error = create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -122,7 +121,7 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
                    db: Session = Depends(get_db), request: Request= None): 
     query = {"patient_id", "lab_id"}
     query_params = request.query_params 
-    if not utils.validate_query_or_body(given_params=query_params, required=query):
+    if not utils.validate_query(given_params=query_params, required=query):
         error = create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
