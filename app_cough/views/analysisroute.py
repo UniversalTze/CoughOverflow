@@ -1,4 +1,4 @@
-import base64, uuid
+import base64, uuid, subprocess
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -78,6 +78,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     )
     db.add(request)
     db.commit()
+    process_image(db, image, request)
 
     # @TODO need to fork a process here to exec Cough Overflow engine. (function in crud.py) 
     message = schemas.AnalysisPost(
@@ -158,3 +159,8 @@ def create_error(incorrect: schemas.ErrorTypeEnum):
     invalid = schemas.AnalysisPostError(error=incorrect.name, detail=incorrect.value)
     return {"error": invalid.error,
             "detail": invalid.detail}
+
+def process_image(db: Session, image, request: dbmodels.Request):
+    print("HERE in image")
+    result = subprocess.run(["ls", "-l"], capture_output=True, text=True)
+    print(result.stdout)  # No need to decode
