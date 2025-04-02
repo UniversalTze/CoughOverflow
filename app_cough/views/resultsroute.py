@@ -113,9 +113,13 @@ def get_lab_results(lab_id: str,
     #check lab id (required)
     if lab_id is None or not utils.is_valid_lab_id(lab_id, db):
         error = {"error": "Invalid query parameters",
-                "detail": "lab_id has not been provided or is not apart of the valid list"}
+                "detail": "lab identifier has not been provided"}
         return JSONResponse(status_code=400, 
                             content=error)
+    if not utils.is_valid_lab_id(lab_id, db):
+        error = {"error": "No corresponding lab to lab identifier",
+                "detail": "lab_id has not been provided or is not apart of the valid list"}
+
     if limit is None: 
         limit = DEFAULT_LIMIT
     else:
