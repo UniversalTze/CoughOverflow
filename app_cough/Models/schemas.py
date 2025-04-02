@@ -49,7 +49,7 @@ class ResultPatient(BaseModel):
 ###### Errors
 class ErrorTypeEnum(Enum): 
     missing_patient_id = "Could not find patient ID"
-    invalid_pateint_id =  "Incorrect format of patient ID"
+    invalid_pateint_id =  "Incorrect format or length of patient ID"
     missing_lab_id = "Could not find Lab ID in DB"
     invalid_lab_id = "Invalid lab identifier"
     no_image = "Could not find Image"

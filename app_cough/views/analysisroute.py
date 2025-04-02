@@ -25,13 +25,13 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     req_body = {"image"}
     query_params = request.query_params
     if not utils.validate_query(query_params, required=query):
-        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
     
     given_body = [params for params in body]
     if not utils.validate_body(args=given_body, required=req_body) or isinstance(body, list):
-        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
 
@@ -51,21 +51,19 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
                             content=error)
     
     if (len(patient_id) != LENGTH_PATIENT_ID):
-        error = create_error(schemas.ErrorTypeEnum.invalid_pateint_id)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_pateint_id)
         return JSONResponse(status_code=400, 
                             content=error)
     image  = body["image"]
     decoded_img = base64.b64decode(image)
     size_img = len(decoded_img)
     if (size_img < MIN_KB and size_img > MAX_KB):
-        error = create_error(schemas.ErrorTypeEnum.invalid_image)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_image)
         return JSONResponse(status_code=400, 
                             content=error)
     
-    labs = crud.get_valid_labs(db) # list of all object items
-    ids = set(lab.id for lab in labs)
-    if (lab_id not in ids): 
-        error = create_error(schemas.ErrorTypeEnum.invalid_lab_id)
+    if not utils.is_valid_lab_id(lab_id, db): 
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
     
@@ -94,7 +92,7 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db), req
     query = {"request_id"}
     query_params = request.query_params 
     if not utils.validate_query(query_params, query):
-        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
     
@@ -123,7 +121,7 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
     query = {"patient_id", "lab_id"}
     query_params = request.query_params 
     if not utils.validate_query(given_params=query_params, required=query):
-        error = create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
     
@@ -155,12 +153,7 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
                 updated_at=result.updated_at.isoformat(timespec='seconds') + 'Z')
     return JSONResponse(status_code=200, content=info.dict())
 
-def create_error(incorrect: schemas.ErrorTypeEnum): 
-    invalid = schemas.AnalysisPostError(error=incorrect.name, detail=incorrect.value)
-    return {"error": invalid.error,
-            "detail": invalid.detail}
 
 def process_image(db: Session, image, request: dbmodels.Request):
-    print("HERE in image")
     result = subprocess.run(["ls", "-l"], capture_output=True, text=True)
-    print(result.stdout)  # No need to decode
+    print("WHATS UPs")  # No need to decode
