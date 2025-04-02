@@ -28,31 +28,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi && \
     chmod +x overflowengine
 
-# Define the container's command to run the app
-CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"]
-
-# Use the same Ubuntu base for the final image to ensure library compatibility
-#FROM python:latest
-
- #path for project and pipx for additional package managers. 
-#RUN apt-get update && apt-get install -y pipx && \
-#    pipx ensurepath && pipx install poetry
-
-# Setting the working directory
-# It changes the default directory where commands run inside the container.
-# If the directory does not exist, Docker creates it.
-#WORKDIR /app
-
-# Install poetry dependencies
-#COPY pyproject.toml ./
-#RUN pipx run poetry install --no-root
-
-#COPY --from=builder /overflowengine ./
-# Copying our application into the container
-#COPY app_cough app_cough
-
-#ENV LD_LIBRARY_PATH=/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH
-
-#CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", \
-#    "--host", "0.0.0.0", "--port", "6400"]
+# Define the container's command to run the app, exposing port 6400
+CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
 
