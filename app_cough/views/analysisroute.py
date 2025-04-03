@@ -109,8 +109,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     # Need to fork a process
     process = multiprocessing.Process(target=worker.worker_image, args=(input_path, output, id_req, tmp_dir))
     process.start()
-    return None
-    #return JSONResponse(status_code=201, content=message.dict())
+    return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
