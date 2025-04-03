@@ -67,8 +67,6 @@ def get_summary_results(db: Session, required: str):
     failed = query.filter(dbmodels.Request.result == schemas.StatusEnum.FAILED.value).count()
     urgent = query.filter(dbmodels.Request.urgent == True).count()
     requested_time = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
-    print(datetime.now(timezone.utc))
-    print(f"Requested time {requested_time}")
     result = schemas.ResultSummary(lab_id=required, 
                                    pending=pending,
                                    covid=covid,

@@ -1,4 +1,5 @@
-import base64, uuid, subprocess
+import multiprocessing.process
+import base64, uuid, subprocess, tempfile, subprocess, multiprocessing, os
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -7,14 +8,15 @@ from sqlalchemy.future import select
 from app_cough.models import schemas, crud, dbmodels, database, get_db
 from typing import Union
 from app_cough import utils
+from app_cough.views import worker
 
 LENGTH_PATIENT_ID = 11
 MIN_KB = 4 * 1000
-MAX_KB = 15 * 1000
+MAX_KB = 150 * 1000
 
 analysisrouter = APIRouter()
 
-@analysisrouter.post('/analysis', response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError])
+@analysisrouter.post('/analysis') #response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError])
 def create_analysis(patient_id: str = Query(None, description="patient_id"), 
                     lab_id: str = Query(None, description="lab_id"), 
                     urgent: bool = Query(None, description="urgent"),
@@ -63,7 +65,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
                             content=error)
     
     size_img = len(decoded_img)
-    if (size_img < MIN_KB and size_img > MAX_KB):
+    if (size_img < MIN_KB or size_img > MAX_KB):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_size)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -77,9 +79,9 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    
+    id_req = str(uuid.uuid4())
     request = dbmodels.Request(
-        request_id=str(uuid.uuid4()),
+        request_id=id_req,
         lab_id = lab_id,
         patient_id=patient_id,
         result=schemas.StatusEnum.PENDING.value,
@@ -87,17 +89,28 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     )
     db.add(request)
     db.commit()
-    db.close()
-    process_image(image, requestid=request.request_id)
-    
-    # @TODO need to fork a process here to exec Cough Overflow engine. (function in crud.py) 
+    # get the nessary stuff from request before closing connection for fork()
     message = schemas.AnalysisPost(
         id=request.request_id,
         created_at=request.created_at.isoformat(timespec='seconds') + 'Z',
         updated_at=request.created_at.isoformat(timespec='seconds') + 'Z',
         status=request.result
     )
-    return JSONResponse(status_code=201, content=message.dict())
+    db.close()
+
+    # create a temp directory to store these results. 
+    tmp_dir = tempfile.gettempdir()
+    input_path = f"{tmp_dir}/{id_req}.jpg"
+    output = f"{tmp_dir}/{id_req}.txt"
+    # write decoded image to .jpeg file
+    with open(input_path, "wb") as f:
+        f.write(decoded_img)
+
+    # Need to fork a process
+    process = multiprocessing.Process(target=worker.worker_image, args=(input_path, output, id_req, tmp_dir))
+    process.start()
+    return None
+    #return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
@@ -164,8 +177,3 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
                 created_at=result.created_at.isoformat(timespec='seconds') + 'Z',
                 updated_at=result.updated_at.isoformat(timespec='seconds') + 'Z')
     return JSONResponse(status_code=200, content=info.dict())
-
-
-def process_image(image, requestid: str):
-    result = subprocess.run(["ls", "-l"], capture_output=True, text=True)
-    print("WHATS UPs")  # No need to decode
