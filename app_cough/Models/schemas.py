@@ -51,10 +51,10 @@ class ResultSummary(BaseModel):
 
 ###### Errors
 class ErrorTypeEnum(Enum): 
-    missing_patient_id = "Could not find patient ID"
+    missing_patient_id = "Could not find patient ID in query. This needs to be provided to use this service"
     invalid_patient_id =  "Incorrect format or length of patient ID"
-    missing_lab_id = "Could not find Lab ID in DB"
-    invalid_lab_id = "Invalid lab identifier"
+    missing_lab_id = "Could not find Lab ID in DB in query. This needs to be provided to use this service"
+    invalid_lab_id = "Invalid lab identifier. Not apart of the available labs to use this service"
     no_image = "Could not find Image"
     invalid_image_size = "Image needs to between this range(KB): 4  < img_size < 150"
     invalid_image_encryption = "Invalid Base64 or corrupt image"
@@ -62,6 +62,7 @@ class ErrorTypeEnum(Enum):
     unknown_error = "Unknown error occured when processing request" 
     invalid_query = "Query parameters are malformed. Please check!"
     invalid_body = "Body arguments are malformed. Please check!"
+    missing_request_id = "Request id is missing from query. Needs to be provided to use this service"
 
 class AnalysisPostError(BaseModel): 
     error: str   # Should be an enum from the list. 
