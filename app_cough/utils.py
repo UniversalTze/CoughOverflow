@@ -4,6 +4,8 @@ from app_cough.models import schemas, crud, get_db
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+LENGTH_PATIENT_ID = 11
+
 def validate_query(given: QueryParams, required: set):
     params = [arg for arg in given]
     if len(params) > len(required):
@@ -11,8 +13,8 @@ def validate_query(given: QueryParams, required: set):
     parameters = set(params)
     if not parameters.issubset(required):  # params are subset of required
         return False
-    for key in given:
-        if len(given.getlist(key)) > 1:
+    for key in given: 
+        if len(given.getlist(key)) > 1: # Duplicate keys
             return False
     return True
 

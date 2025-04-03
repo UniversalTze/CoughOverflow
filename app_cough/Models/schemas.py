@@ -13,13 +13,6 @@ class StatusEnum(Enum):
     HEALTHY = "healthy"
     FAILED = "failed"
 
-##### Labs
-class Labs(BaseModel): 
-    labs: List[str]
-    class Config:
-        from_attributes = True  # This allows FastAPI to convert SQLAlchemy models to Pydantic models
-
-
 ##### Analysis
 class Analysis(BaseModel): 
     request_id: str
@@ -59,7 +52,7 @@ class ResultSummary(BaseModel):
 ###### Errors
 class ErrorTypeEnum(Enum): 
     missing_patient_id = "Could not find patient ID"
-    invalid_pateint_id =  "Incorrect format or length of patient ID"
+    invalid_patient_id =  "Incorrect format or length of patient ID"
     missing_lab_id = "Could not find Lab ID in DB"
     invalid_lab_id = "Invalid lab identifier"
     no_image = "Could not find Image"

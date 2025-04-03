@@ -15,8 +15,7 @@ class Request(Base):
     urgent = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, nullable=False, 
-                        default=datetime.now(timezone.utc), 
-                        onupdate=datetime.now(timezone.utc))
+                        default=datetime.now(timezone.utc))
 
     def to_dict(self): 
         return { 

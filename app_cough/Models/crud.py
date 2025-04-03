@@ -77,10 +77,10 @@ def get_summary_results(db: Session, required: str):
                                    generated_at=requested_time)
     return result
 
-def update_requests(db: Session, requestObj, toUpdate: dict):
-    for key, value in toUpdate.items():
-        setattr(requestObj, key, value)
+def update_requests(db: Session, requestobj: dbmodels.Request, lab_id: str):
+    requestobj.lab_id = lab_id
+    requestobj.updated_at = datetime.now(timezone.utc) # updates it no matter what
     db.commit()
-    db.refresh(requestObj)
-    return requestObj
+    db.refresh(requestobj)
+    return requestobj
 
