@@ -195,7 +195,7 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
         return JSONResponse(status_code=400, 
                             content=error)
     # query paramaters can be none here
-    if utils.is_valid_lab_id(lab_id, db): 
+    if not utils.is_valid_lab_id(lab_id, db): 
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=404, 
                             content=error)
