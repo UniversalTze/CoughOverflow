@@ -222,6 +222,7 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
                             content=error)
         else:
             end = datetime.fromisoformat(end)
+    # everything is valid, begin processing request
     data = crud.get_summary_results(db, lab_id)
     return JSONResponse(status_code=200, 
                             content=data.dict())

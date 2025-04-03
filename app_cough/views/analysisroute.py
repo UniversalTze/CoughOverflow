@@ -30,7 +30,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
                             content=error)
     
     given_body = [params for params in body]
-    if not utils.validate_body(args=given_body, required=req_body) or isinstance(body, list):
+    if not utils.validate_body(args=given_body, required=req_body):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -55,10 +55,21 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         return JSONResponse(status_code=400, 
                             content=error)
     image  = body["image"]
-    decoded_img = base64.b64decode(image)
+    try: 
+        decoded_img = base64.b64decode(image, validate=True)
+    except (base64.binascii.Error, ValueError):
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_encryption)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
     size_img = len(decoded_img)
     if (size_img < MIN_KB and size_img > MAX_KB):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_image)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_size)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
+    if not decoded_img.startswith(b"\xFF\xD8") or not decoded_img.endswith(b"\xFF\xD9"):
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_format)
         return JSONResponse(status_code=400, 
                             content=error)
     
@@ -76,8 +87,9 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     )
     db.add(request)
     db.commit()
-    process_image(db, image, request)
-
+    db.close()
+    process_image(image, requestid=request.request_id)
+    
     # @TODO need to fork a process here to exec Cough Overflow engine. (function in crud.py) 
     message = schemas.AnalysisPost(
         id=request.request_id,
@@ -154,6 +166,6 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
     return JSONResponse(status_code=200, content=info.dict())
 
 
-def process_image(db: Session, image, request: dbmodels.Request):
+def process_image(image, requestid: str):
     result = subprocess.run(["ls", "-l"], capture_output=True, text=True)
     print("WHATS UPs")  # No need to decode
