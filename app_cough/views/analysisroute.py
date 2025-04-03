@@ -33,7 +33,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.no_image)
         return JSONResponse(status_code=400, 
                             content=error)
-    given_body = [params for params in body]
+    given_body = [params for params in body] # check given body params are correct
     if not utils.validate_body(args=given_body, required=req_body):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
@@ -43,16 +43,20 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.missing_patient_id)
         return JSONResponse(status_code=400, 
                             content=error)
+    if (len(patient_id) != utils.LENGTH_PATIENT_ID):
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_patient_id)
+        return JSONResponse(status_code=400, 
+                            content=error)
     
     if (lab_id is None):
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    
-    if (len(patient_id) != utils.LENGTH_PATIENT_ID):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_patient_id)
+    if not utils.is_valid_lab_id(lab_id, db): 
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
+    
     image  = body["image"]
     try: 
         decoded_img = base64.b64decode(image, validate=True)
@@ -71,10 +75,6 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         return JSONResponse(status_code=400, 
                             content=error)
     
-    if not utils.is_valid_lab_id(lab_id, db): 
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
-        return JSONResponse(status_code=400, 
-                            content=error)
     id_req = str(uuid.uuid4())
     request = dbmodels.Request(
         request_id=id_req,
@@ -121,7 +121,7 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db), req
         return JSONResponse(status_code=404, 
                                 content= {
                                     "error": "request id not found",
-                                    "detail": "request id not found in database"
+                                    "detail": "request id does not correspond to any submitted analysis requests"
                                 })
     info = schemas.Analysis(
             request_id=result.request_id,
@@ -135,7 +135,7 @@ def get_request(request_id: str = Query(...), db: Session = Depends(get_db), req
     return JSONResponse(status_code=200, 
                                 content=info.dict())
     
-@analysisrouter.put('/analysis') # response_model= Union[schemas.AnalysisPost, schemas.AnalysisUpdateError])
+@analysisrouter.put('/analysis',response_model= Union[schemas.Analysis, schemas.AnalysisUpdateError, schemas.AnalysisPostError])
 def update_request(request_id: str = Query(...), lab_id: str = Query(...), 
                    db: Session = Depends(get_db), request: Request= None): 
     query = {"request_id", "lab_id"}
@@ -145,6 +145,12 @@ def update_request(request_id: str = Query(...), lab_id: str = Query(...),
         return JSONResponse(status_code=400, 
                             content=error)
     
+    if (lab_id is None or request_id is None):
+        return JSONResponse(status_code=400, 
+                            content={
+                                "error": "request id or lab id not found in query params",
+                                "detail": "request id or lab id not found. These are required parameters for this service"
+                            })
     labs = crud.get_valid_labs(db) # list of all object items
     ids = set(lab.id for lab in labs)
     if (lab_id not in ids):

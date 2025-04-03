@@ -8,6 +8,6 @@ labrouter = APIRouter()
 
 @labrouter.get('/labs')
 def get_labs(db:Session = Depends(get_db)):
-    result = crud.get_lab_ids(db) # sql alchemy returns this result as a tuple. 
+    result = crud.get_lab_ids(db) # sql alchemy returns each lab as a tuple. 
     labs = [lab[0] for lab in result]
     return labs
