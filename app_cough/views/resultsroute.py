@@ -28,11 +28,17 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
         return JSONResponse(status_code=400, 
                             content=error)
     
-    if patient_id is None and len(patient_id) != 11:
+    if patient_id is None:
         error = {"error": "Invalid query parameters",
-                "detail": "patient id must be supplied correctly when using this method"}
+                "detail": "patient id must be supplied  when using this method"}
         return JSONResponse(status_code=400, 
                             content=error)
+    if len(patient_id != utils.LENGTH_PATIENT_ID):
+        error = {"error": "Invalid query parameters",
+                "detail": "patient id can only contain 11 characters."}
+        return JSONResponse(status_code=400, 
+                            content=error)
+
     # check valid status 
     if status is not None and not utils.is_valid_status(status):
         error = {"error": "Invalid query parameters",
@@ -195,6 +201,8 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
     if not utils.is_valid_lab_id(lab_id, db):
         error = {"error": "No corresponding lab to lab identifier",
                 "detail": "lab_id has not been provided or is not apart of the valid list"}
+        return JSONResponse(status_code=404, 
+                            content=error)
     # optional params
     query = {"start", "end"}
     params = request.query_params
