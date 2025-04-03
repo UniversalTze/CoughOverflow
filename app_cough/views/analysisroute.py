@@ -65,6 +65,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_size)
         return JSONResponse(status_code=400, 
                             content=error)
+    
     if not decoded_img.startswith(b"\xFF\xD8") or not decoded_img.endswith(b"\xFF\xD9"):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_image_format)
         return JSONResponse(status_code=400, 
@@ -84,13 +85,13 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     )
     db.add(request)
     db.commit()
-    # get the nessary stuff from request before closing connection for fork()
     message = schemas.AnalysisPost(
         id=request.request_id,
         created_at=request.created_at.isoformat(timespec='seconds') + 'Z',
         updated_at=request.created_at.isoformat(timespec='seconds') + 'Z',
         status=request.result
     )
+    # get the nessary stuff from request before closing connection for fork()
     db.close()
 
     # create a temp directory to store these results. 
