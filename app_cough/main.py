@@ -1,4 +1,3 @@
-import os
 import psycopg2
 import logging
 import urllib.request # Downloading CSV file 
@@ -6,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
 from .models import engine, seed_labs, Base, dbmodels, SessionLocal, schemas
+from pathlib import Path
 
 #Command to start app, might need to SH.
 # uvicorn app_cough.main:app --port 6400
@@ -37,9 +37,9 @@ def on_startup():
     path, _ =  urllib.request.urlretrieve("https://csse6400.uqcloud.net/resources/labs.csv", "./app_cough/labs.csv")
 
     db = SessionLocal()
-    if db.query(dbmodels.Labs).count() == 0:
-        base_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of main.py
-        file_path = os.path.join(base_dir, "labs.csv")  # Correct file path
+    if db.query(dbmodels.Labs).count() == 0: # valid labs has not been added yet
+        base_dir = Path(__file__).resolve().parent  # Directory of main.py
+        file_path = str(base_dir / "labs.csv")
         seed_labs(file_path)
     
 app.include_router(healthrouter, prefix="/api/v1")
