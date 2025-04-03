@@ -6,14 +6,12 @@ from app_cough.models import schemas, crud, dbmodels, database, get_db
 from datetime import datetime
 from app_cough import utils
 
+resultRouter = APIRouter()
 LOWEST_LIMIT = 0
 DEFAULT_LIMIT = 100
 HIGHEST_LIMIT = 1000
 DEFAULT_OFFSET = 0
-
-resultRouter = APIRouter()
-
-@resultRouter.get('/patients/results') # response_model = schemas.ResultPatient)
+@resultRouter.get('/patients/results') #response_model = schemas.ResultPatient)
 def get_patient_results(patient_id: str = Query(None, description="patient_id"),
                         start: str = Query(None, description="start"),
                         end: str = Query(None, description="end"),
@@ -25,16 +23,19 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
     query = {"patient_id", "start", "end", "status", "urgent"}
     params = request.query_params
     if not utils.validate_query(params, query):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = {"error": "Invalid query parameters",
+                "detail": "Check to see if parameters were submitted correctly with same format, no duplicates and no extra params"}
         return JSONResponse(status_code=400, 
                             content=error)
     
     if patient_id is None:
-        error = utils.create_error(schemas.ErrorTypeEnum.missing_patient_id)
+        error = {"error": "Invalid query parameters",
+                "detail": "patient id must be supplied  when using this method"}
         return JSONResponse(status_code=400, 
                             content=error)
     if len(patient_id != utils.LENGTH_PATIENT_ID):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_patient_id)
+        error = {"error": "Invalid query parameters",
+                "detail": "patient id can only contain 11 characters."}
         return JSONResponse(status_code=400, 
                             content=error)
 
@@ -74,7 +75,7 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
 
     res = crud.get_patient_results(db, patient_id, optional_params=optional)
     if patient is None or not res:
-        error = {"error": "Patient id does not correspond to a known patient",
+        error = {"error": "patient id does not correspond to a known patient",
                 "detail": "No associated records with this patient id with given search parameters."}
         return JSONResponse(status_code=404, 
                             content=error)
@@ -111,18 +112,20 @@ def get_lab_results(lab_id: str,
     query = {"limit","offset",  "start", "end", "patient_id", "status", "urgent"}
     params = request.query_params
     if not utils.validate_query(params, query):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = {"error": "Invalid query parameters",
+                "detail": "Check to see if parameters were submitted correctly with correct format, no duplicates and no extra params"}
         return JSONResponse(status_code=400, 
                             content=error)
     #check lab id (required)
     if lab_id is None:
-        error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
+        error = {"error": "Invalid query parameters",
+                "detail": "lab identifier has not been provided"}
         return JSONResponse(status_code=400, 
                             content=error)
     if not utils.is_valid_lab_id(lab_id, db):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
-        return JSONResponse(status_code=400, 
-                            content=error)
+        error = {"error": "No corresponding lab to lab identifier",
+                "detail": "lab_id has not been provided or is not apart of the valid list"}
+
     if limit is None: 
         limit = DEFAULT_LIMIT
     else:
@@ -190,19 +193,22 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
                        db:Session = Depends(get_db), request: Request = None):
     # required params (check id)
     if lab_id is None:
-        error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
+        error = {"error": "Invalid query parameters",
+                "detail": "lab identifier has not been provided"}
         return JSONResponse(status_code=400, 
                             content=error)
     
     if not utils.is_valid_lab_id(lab_id, db):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
+        error = {"error": "No corresponding lab to lab identifier",
+                "detail": "lab_id has not been provided or is not apart of the valid list"}
         return JSONResponse(status_code=404, 
                             content=error)
     # optional params
     query = {"start", "end"}
     params = request.query_params
     if not utils.validate_query(params, query):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
+        error = {"error": "Invalid query parameters",
+                "detail": "Check to see if parameters were submitted correctly with correct format, no duplicates and no extra params"}
         return JSONResponse(status_code=400, 
                             content=error)
     
@@ -236,7 +242,7 @@ def determine_status(status: str):
             return enums
 
 def determine_limit(lim: int):
-    if (lim < LOWEST_LIMIT):
-        return LOWEST_LIMIT
-    if (lim > HIGHEST_LIMIT): 
-        return HIGHEST_LIMIT
+    if (lim < 0):
+        return 0
+    if (lim > 1000): 
+        return 1000

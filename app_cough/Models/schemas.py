@@ -51,10 +51,10 @@ class ResultSummary(BaseModel):
 
 ###### Errors
 class ErrorTypeEnum(Enum): 
-    missing_patient_id = "Could not find patient ID in query. This is required for service to run."
+    missing_patient_id = "Could not find patient ID"
     invalid_patient_id =  "Incorrect format or length of patient ID"
-    missing_lab_id = "Could not find Lab ID. This is required for service to run."
-    invalid_lab_id = "Invalid lab identifier. Not apart of list of available labs to run this service"
+    missing_lab_id = "Could not find Lab ID in DB"
+    invalid_lab_id = "Invalid lab identifier"
     no_image = "Could not find Image"
     invalid_image_size = "Image needs to between this range(KB): 4  < img_size < 150"
     invalid_image_encryption = "Invalid Base64 or corrupt image"

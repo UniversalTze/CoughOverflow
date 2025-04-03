@@ -7,8 +7,6 @@ from sqlalchemy.orm import Session
 LENGTH_PATIENT_ID = 11
 
 def validate_query(given: QueryParams, required: set):
-    if given is None:  # no parameters
-        return False
     params = [arg for arg in given]
     if len(params) > len(required):
         return False # too many parameters supplied

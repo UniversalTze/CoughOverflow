@@ -22,9 +22,9 @@ def get_health(db: Session = Depends(get_db)):
     if overall_healthy:
         return JSONResponse(status_code=200, content=response)
     else: 
-        return JSONResponse(status_code=503, content=response) # db service not available
+        return JSONResponse(status_code=503, content=response)
 
 def check_db_health(db: Session): 
-    res = crud.get_single_lab(db) # test db
+    res = crud.get_single_lab(db)
     return res is not None
 
