@@ -28,7 +28,7 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
         return JSONResponse(status_code=400, 
                             content=error)
     
-    if patient_id is None or len(patient_id) != 11:
+    if patient_id is None and len(patient_id) != 11:
         error = {"error": "Invalid query parameters",
                 "detail": "patient id must be supplied correctly when using this method"}
         return JSONResponse(status_code=400, 
@@ -107,11 +107,11 @@ def get_lab_results(lab_id: str,
     params = request.query_params
     if not utils.validate_query(params, query):
         error = {"error": "Invalid query parameters",
-                "detail": "Check to see if parameters were submitted correctly with same format, no duplicates and no extra params"}
+                "detail": "Check to see if parameters were submitted correctly with correct format, no duplicates and no extra params"}
         return JSONResponse(status_code=400, 
                             content=error)
     #check lab id (required)
-    if lab_id is None or not utils.is_valid_lab_id(lab_id, db):
+    if lab_id is None:
         error = {"error": "Invalid query parameters",
                 "detail": "lab identifier has not been provided"}
         return JSONResponse(status_code=400, 
@@ -181,7 +181,52 @@ def get_lab_results(lab_id: str,
                         content = { 
                             "result": result
                             }) 
+
+@resultRouter.get('/labs/results/{lab_id}/summary')
+def get_result_summary(lab_id: str, start: str = Query(None, description="start"), end: str = Query(None, description="end"), 
+                       db:Session = Depends(get_db), request: Request = None):
+    # required params (check id)
+    if lab_id is None:
+        error = {"error": "Invalid query parameters",
+                "detail": "lab identifier has not been provided"}
+        return JSONResponse(status_code=400, 
+                            content=error)
     
+    if not utils.is_valid_lab_id(lab_id, db):
+        error = {"error": "No corresponding lab to lab identifier",
+                "detail": "lab_id has not been provided or is not apart of the valid list"}
+    # optional params
+    query = {"start", "end"}
+    params = request.query_params
+    if not utils.validate_query(params, query):
+        error = {"error": "Invalid query parameters",
+                "detail": "Check to see if parameters were submitted correctly with correct format, no duplicates and no extra params"}
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
+     # Checking dates
+    if start is not None:
+        if not utils.is_valid_date(start):
+            error = {"error": "Invalid query parameters", 
+                     "detail": "start date must be of rfc3339 format"}
+            return JSONResponse(status_code=400, 
+                            content=error)
+        else:
+            start = datetime.fromisoformat(start)
+    
+    if end is not None:
+        if not utils.is_valid_date(end):
+            error = {"error": "Invalid query parameters", 
+                     "detail": "end date must be of rfc3339 format"}
+            return JSONResponse(status_code=400, 
+                            content=error)
+        else:
+            end = datetime.fromisoformat(end)
+    data = crud.get_summary_results(db, lab_id)
+    return JSONResponse(status_code=200, 
+                            content=data.dict())
+
+
 def determine_status(status: str):
     for enums in schemas.StatusEnum:
         if enums.value == status: 

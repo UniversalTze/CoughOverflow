@@ -46,6 +46,16 @@ class AnalysisPost(BaseModel):
 class ResultPatient(BaseModel): 
     results: List[Analysis]
 
+class ResultSummary(BaseModel): 
+    lab_id: str
+    pending: int
+    covid: int
+    h5n1: int
+    healthy: int
+    failed: int
+    urgent: int
+    generated_at: str
+
 ###### Errors
 class ErrorTypeEnum(Enum): 
     missing_patient_id = "Could not find patient ID"

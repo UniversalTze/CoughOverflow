@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import dbmodels, schemas
 from app_cough import utils
+from datetime import datetime, timezone
 
 # Create, Read, Update and Delete Operations with database
 START_DATE =  "start_date"
@@ -55,10 +56,29 @@ def get_lab_results(db: Session, params: dict, required:str):
     query = query.filter(dbmodels.Request.urgent == params[URGENT]) if URGENT in params else query
     return query.offset(params[OFFSET]).limit(params[LIMIT]).all()
 
+def get_summary_results(db: Session, required: str): 
+    query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
+    # build the counts from here (build the schema in here
+    # pending
+    pending = query.filter(dbmodels.Request.result == schemas.StatusEnum.PENDING.value).count()
+    covid = query.filter(dbmodels.Request.result == schemas.StatusEnum.COVID.value).count()
+    h5n1 = query.filter(dbmodels.Request.result == schemas.StatusEnum.H5N1.value).count()
+    healthy = query.filter(dbmodels.Request.result == schemas.StatusEnum.HEALTHY.value).count()
+    failed = query.filter(dbmodels.Request.result == schemas.StatusEnum.FAILED.value).count()
+    urgent = query.filter(dbmodels.Request.urgent == True).count()
+    requested_time = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
+    print(datetime.now(timezone.utc))
+    print(f"Requested time {requested_time}")
+    result = schemas.ResultSummary(lab_id=required, 
+                                   pending=pending,
+                                   covid=covid,
+                                   h5n1=h5n1,
+                                   healthy=healthy,
+                                   failed=failed,
+                                   urgent=urgent,
+                                   generated_at=requested_time)
+    return result
 
-    
-
-        
 def update_requests(db: Session, requestObj, toUpdate: dict):
     for key, value in toUpdate.items():
         setattr(requestObj, key, value)
