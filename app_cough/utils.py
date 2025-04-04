@@ -50,3 +50,8 @@ def create_error(incorrect: schemas.ErrorTypeEnum):
     invalid = schemas.AnalysisPostError(error=incorrect.name, detail=incorrect.value)
     return {"error": invalid.error,
             "detail": invalid.detail}
+
+def determine_status(status: str):
+    for enums in schemas.StatusEnum:
+        if enums.value == status: 
+            return enums

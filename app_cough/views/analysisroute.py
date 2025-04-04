@@ -108,14 +108,17 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
-def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
+def get_request(request_id: str = Query(None, description="request_id"), db: Session = Depends(get_db), request: Request= None):
     query = {"request_id"}
     query_params = request.query_params 
     if (query_params and not utils.validate_query(query_params, query)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
-    
+    if (request_id is None):
+        error = utils.create_error(schemas.ErrorTypeEnum.missing_request_id)
+        return JSONResponse(status_code=400, 
+                            content=error)
     result = crud.get_requests(db, request_id)
     if result is None:
         return JSONResponse(status_code=404, 

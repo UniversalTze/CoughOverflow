@@ -150,7 +150,7 @@ def get_lab_results(lab_id: str,
             end = datetime.fromisoformat(end)
     # Check Patient ID. 
     if (patient_id is not None and len(patient_id) != 11):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_pateint_id)
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_patient_id)
         return JSONResponse(status_code=400, 
                             content=error)
     if (status is not None and not utils.is_valid_status(status)): 
@@ -230,11 +230,6 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
     return JSONResponse(status_code=200, 
                             content=data.dict())
 
-
-def determine_status(status: str):
-    for enums in schemas.StatusEnum:
-        if enums.value == status: 
-            return enums
 
 def determine_limit(lim: int):
     if (lim < 0):
