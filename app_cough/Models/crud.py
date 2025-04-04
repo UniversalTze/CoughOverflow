@@ -8,7 +8,7 @@ START_DATE =  "start_date"
 END_DATE = "end_date"
 STATUS = "status"
 URGENT = "urgent"
-PATIENT = "patient_ids"
+PATIENT = "patient_id"
 LAB = "lab"
 LIMIT = "limit"
 OFFSET = "offset"
@@ -49,11 +49,11 @@ def get_patient_results(db: Session, required_param: str, optional_params: dict)
 
 def get_lab_results(db: Session, params: dict, required:str):
     query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
-    query = query.filter(dbmodels.Request.created_at > params[START_DATE]) if START_DATE in params else query
-    query = query.filter(dbmodels.Request.created_at <= params[END_DATE]) if END_DATE in params else query
-    query = query.filter(dbmodels.Request.patient_id == params[PATIENT]) if PATIENT in params else query
-    query = query.filter(dbmodels.Request.result == params[STATUS]) if STATUS in params else query
-    query = query.filter(dbmodels.Request.urgent == params[URGENT]) if URGENT in params else query
+    query = query.filter(dbmodels.Request.created_at > params[START_DATE]) if params[START_DATE] != None else query
+    query = query.filter(dbmodels.Request.created_at <= params[END_DATE]) if params[END_DATE] != None else query
+    query = query.filter(dbmodels.Request.patient_id == params[PATIENT]) if params[PATIENT] != None else query
+    query = query.filter(dbmodels.Request.result == params[STATUS]) if params[STATUS] != None else query
+    query = query.filter(dbmodels.Request.urgent == params[URGENT]) if params[URGENT] != None else query
     return query.offset(params[OFFSET]).limit(params[LIMIT]).all()
 
 def get_summary_results(db: Session, required: str): 

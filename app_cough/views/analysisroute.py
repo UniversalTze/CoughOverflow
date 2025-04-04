@@ -22,13 +22,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
                     body: dict = Body(None), 
                     db: Session = Depends(get_db), 
                     request: Request= None): 
-    query = {"patient_id", "lab_id", "urgent"}
     req_body = {"image"}
-    query_params = request.query_params
-    if (query_params is None or not utils.validate_query(query_params, required=query)):
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
-        return JSONResponse(status_code=400, 
-                            content=error)
     if (body is None):
         error = utils.create_error(schemas.ErrorTypeEnum.no_image)
         return JSONResponse(status_code=400, 
@@ -38,7 +32,14 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
-
+    
+    query_params = request.query_params
+    query = {"patient_id", "lab_id", "urgent"}
+    if (query_params and not utils.validate_query(query_params, required=query)): # check params provided in query
+        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
+        return JSONResponse(status_code=400, 
+                            content=error)
+    
     if patient_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_patient_id)
         return JSONResponse(status_code=400, 
@@ -110,7 +111,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
 def get_request(request_id: str = Query(...), db: Session = Depends(get_db), request: Request= None):
     query = {"request_id"}
     query_params = request.query_params 
-    if (query_params is None or not utils.validate_query(query_params, query)):
+    if (query_params and not utils.validate_query(query_params, query)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -140,7 +141,7 @@ def update_request(request_id: str = Query(None, description="request_id"),
                    db: Session = Depends(get_db), request: Request= None): 
     query = {"request_id", "lab_id"}
     query_params = request.query_params
-    if (query_params is None or not utils.validate_query(given=query_params, required=query)):
+    if (query_params and not utils.validate_query(given=query_params, required=query)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)

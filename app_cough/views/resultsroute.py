@@ -21,19 +21,18 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
                         urgent: bool = Query(None, description="urgent"),
                         db:Session = Depends(get_db), 
                         request: Request= None):
-    # filters are additive, if none, they should not be applied.
+    # check params given to ensure no duplicates and additional params provided
     query = {"patient_id", "start", "end", "status", "urgent"}
     params = request.query_params
-    if (params is None or not utils.validate_query(params, query)):
+    if (params and not utils.validate_query(params, query)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
-    
     if patient_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_patient_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    if len(patient_id != utils.LENGTH_PATIENT_ID):
+    if len(patient_id) != utils.LENGTH_PATIENT_ID:
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_patient_id)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -108,13 +107,6 @@ def get_lab_results(lab_id: str,
                     urgent: bool = Query(None, description="urgent"),
                     db:Session = Depends(get_db),
                     request: Request = None):
-    query = {"limit","offset",  "start", "end", "patient_id", "status", "urgent"}
-    params = request.query_params
-    # params can be none here as query params are optional for this service
-    if (params is not None and not utils.validate_query(params, query)): 
-        error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
-        return JSONResponse(status_code=400, 
-                            content=error)
     #check lab id (required) found in path
     if lab_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
@@ -124,6 +116,14 @@ def get_lab_results(lab_id: str,
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=404, 
                             content=error)
+    
+    query = {"limit","offset",  "start", "end", "patient_id", "status", "urgent"}
+    params = request.query_params
+    # params can be none here as query params are optional for this service
+    if (params and not utils.validate_query(params, query)): 
+            error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
+            return JSONResponse(status_code=400, 
+                                content=error)
     if limit is None: 
         limit = DEFAULT_LIMIT
     else:
@@ -187,22 +187,22 @@ def get_lab_results(lab_id: str,
                             }) 
 
 @resultRouter.get('/labs/results/{lab_id}/summary')
-def get_result_summary(lab_id: str, start: str = Query(None, description="start"), end: str = Query(None, description="end"), 
+def get_result_summary(lab_id: str, start: str = Query(None, description="start"), 
+                       end: str = Query(None, description="end"), 
                        db:Session = Depends(get_db), request: Request = None):
     # required params (check id)
     if lab_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    # query paramaters can be none here
     if not utils.is_valid_lab_id(lab_id, db): 
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=404, 
                             content=error)
-    # optional params
+    # optional params (can be none) if parameters are given, check...
     query = {"start", "end"}
     params = request.query_params
-    if (params is not None and not utils.validate_query(params, query)):
+    if (params and not utils.validate_query(params, query)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_query)
         return JSONResponse(status_code=400, 
                             content=error)
