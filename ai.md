@@ -1,0 +1,2 @@
+#### Uses
+- Used AI to help debug error messages that came from errors when setting up end-points, docker containers, JSON errors, database connections and just general error messages that I was confused about. 
