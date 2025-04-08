@@ -31,6 +31,7 @@ def is_valid_status(value: str) -> bool:
 
 def is_rfc3339(date_str: str) -> bool:
     try: 
+        # Based on code from https://stackoverflow.com/questions/62764701/how-to-validate-that-a-string-is-a-time-in-rfc3339-format
         return datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S%z').tzinfo is not None
     except ValueError as e:
         return False

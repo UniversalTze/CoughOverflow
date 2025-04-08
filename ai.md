@@ -1,2 +1,2 @@
 #### Uses
-- Used AI to help debug error messages that came from errors when setting up end-points, docker containers, JSON errors, database connections and just general error messages that I was confused about. 
+- Used AI to help debug error messages. Debug messages include, but are not limited to, errors when setting up end-points, docker containers, JSON errors, database connections and just general error messages that I was confused about.
