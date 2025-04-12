@@ -20,22 +20,40 @@ provider "aws" {
         }
     }
 }
-/*
+
 # Resource
 locals {
-    image = "ghcr.io/csse6400/taskoverflow:latest"  # Currently incorrect, need to change this with image in registry
-    database_username = "administrator" 
-    database_password = "foobarbaz" # This is bad! 
+    database_username = "cough_user" 
+    database_password = "superSecretPassword.23"  # Bad to hardcode password in prod
 } 
 
-resource "aws_ecr_repository" "coughOverflow" { #ECR Registry
- name = "coughoverflow" 
+resource "aws_db_instance" "coughoverflow_database" { 
+ allocated_storage = 20   # MIN GB
+ max_allocated_storage = 1000  # MAX GB (scale up)
+ engine = "postgres" 
+ engine_version = "17" 
+ instance_class = "db.t3.micro"    # small, low-cost instance
+ db_name = "cough" 
+ username = local.database_username 
+ password = local.database_password 
+ parameter_group_name = "default.postgres17"  # defalult group settings for this DB
+ skip_final_snapshot = true     # Skip creating a backup snapshot when deleted
+ vpc_security_group_ids = [aws_security_group.coughoverflow_database.id]    # security group for network access
+ publicly_accessible = true  # Access over the internet
+ allow_major_version_upgrade = true   # upgrading version of engien. 
+ 
+ tags = { 
+   Name = "coughoverflow_database" 
+ } 
 }
 
-resource "aws_security_group" "coughOverflow_database" { 
+resource "aws_security_group" "coughoverflow_database" { 
  name = "coughoverflow_database"  # Name of security group in AWS
  description = "Set up inbound and outbound Postgresql traffic" 
  
+ # Since no VPC created, it will used default VPC for region
+ # Each AWS region has 6 subnets (one in each AZ). Internet gateway, rotue tables, etc included.
+ # RDS instance will be assinged to all subnets
  ingress {  #Inbound (TCP port 5432) default for postgress
    from_port = 5432 
    to_port = 5432 
@@ -57,6 +75,32 @@ resource "aws_security_group" "coughOverflow_database" {
  } 
 }
 
+output "db_endpoint" {
+  description = "The address to connect to the PostgreSQL database"
+  value       = aws_db_instance.coughoverflow_database.endpoint
+}
+
+output "db_port" {
+  description = "Database port"
+  value       = aws_db_instance.coughoverflow_database.port
+}
+
+# For docker authorisation
+data "aws_ecr_authorization_token" "ecr_token" {} 
+ 
+provider "docker" { 
+ registry_auth { 
+   address = data.aws_ecr_authorization_token.ecr_token.proxy_endpoint 
+   username = data.aws_ecr_authorization_token.ecr_token.user_name 
+   password = data.aws_ecr_authorization_token.ecr_token.password 
+ } 
+}
+
+resource "aws_ecr_repository" "coughoverflow" { #ECR Registry
+ name = "coughoverflow"
+}
+
+/*
 resource "docker_image" "coughOverflow" { 
  name = "${aws_ecr_repository.coughoverflow}:latest" 
  build { 
