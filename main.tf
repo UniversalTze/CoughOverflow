@@ -4,6 +4,10 @@ terraform {
             source  = "hashicorp/aws"
             version = "~> 4.0"
         }
+        docker = { 
+            source = "kreuzwerker/docker" 
+            version = "3.0.2" 
+    } 
     }
 }
 
@@ -21,12 +25,29 @@ provider "aws" {
     }
 }
 
+data "aws_vpc" "default" {  # default VPC for given AWS region
+   default = true 
+} 
+
+data "aws_subnets" "private" {  # All Subnets within the default VPC
+   filter { 
+      name = "vpc-id" 
+      values = [data.aws_vpc.default.id] 
+   } 
+}
+
+data "aws_iam_role" "lab" { 
+  # From AWS, this role is like a super user, can do everything within AWS console.
+  name = "LabRole"
+}
+
 # Resource
 locals {
     database_username = "cough_user" 
     database_password = "superSecretPassword.23"  # Bad to hardcode password in prod
 } 
 
+/*
 resource "aws_db_instance" "coughoverflow_database" { 
  allocated_storage = 20   # MIN GB
  max_allocated_storage = 1000  # MAX GB (scale up)
@@ -84,7 +105,7 @@ output "db_port" {
   description = "Database port"
   value       = aws_db_instance.coughoverflow_database.port
 }
-
+*/
 # For docker authorisation
 data "aws_ecr_authorization_token" "ecr_token" {} 
  
@@ -100,15 +121,19 @@ resource "aws_ecr_repository" "coughoverflow" { #ECR Registry
  name = "coughoverflow"
 }
 
-/*
-resource "docker_image" "coughOverflow" { 
- name = "${aws_ecr_repository.coughoverflow}:latest" 
+
+resource "docker_image" "coughoverflow" { 
+ name = "${aws_ecr_repository.coughoverflow.repository_url}:latest" 
  build { 
    context = "." #build image locally
  } 
 } 
 
+resource "docker_registry_image" "coughoverflow_push" { 
+ name = docker_image.coughoverflow.name
+}
 
+/*
 resource "local_file" "url" {
     content  = "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
