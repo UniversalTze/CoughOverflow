@@ -7,7 +7,7 @@ terraform {
         docker = { 
             source = "kreuzwerker/docker" 
             version = "3.0.2" 
-    } 
+        }
     }
 }
 
@@ -43,11 +43,11 @@ data "aws_iam_role" "lab" {
 
 # Resource
 locals {
-    database_username = "cough_user" 
-    database_password = "superSecretPassword.23"  # Bad to hardcode password in prod
+  image = docker_image.coughoverflow.name
+  database_username = "cough_user" 
+  database_password = "superSecretPassword.23"  # Bad to hardcode password in prod
 } 
 
-/*
 resource "aws_db_instance" "coughoverflow_database" { 
  allocated_storage = 20   # MIN GB
  max_allocated_storage = 1000  # MAX GB (scale up)
@@ -77,7 +77,7 @@ resource "aws_security_group" "coughoverflow_database" {
  # RDS instance will be assinged to all subnets
  ingress {  #Inbound (TCP port 5432) default for postgress
    from_port = 5432 
-   to_port = 5432 
+   to_port = 5432    # Default port for Postgress
    protocol = "tcp" 
    cidr_blocks = ["0.0.0.0/0"] #Any IPv4 address
  } 
@@ -105,7 +105,7 @@ output "db_port" {
   description = "Database port"
   value       = aws_db_instance.coughoverflow_database.port
 }
-*/
+
 # For docker authorisation
 data "aws_ecr_authorization_token" "ecr_token" {} 
  
@@ -114,23 +114,122 @@ provider "docker" {
    address = data.aws_ecr_authorization_token.ecr_token.proxy_endpoint 
    username = data.aws_ecr_authorization_token.ecr_token.user_name 
    password = data.aws_ecr_authorization_token.ecr_token.password 
- } 
+ }
 }
 
 resource "aws_ecr_repository" "coughoverflow" { #ECR Registry
  name = "coughoverflow"
 }
 
-
 resource "docker_image" "coughoverflow" { 
  name = "${aws_ecr_repository.coughoverflow.repository_url}:latest" 
  build { 
    context = "." #build image locally
+   platform = "linux/arm64"
  } 
 } 
 
+
 resource "docker_registry_image" "coughoverflow_push" { 
  name = docker_image.coughoverflow.name
+}
+
+resource "aws_ecs_cluster" "coughoverflow" { 
+   name = "coughoverflow" 
+}
+
+resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 6400
+   family = "coughoverflow"
+   network_mode = "awsvpc" 
+   requires_compatibilities = ["FARGATE"] 
+   cpu = 1024 
+   memory = 2048 
+   execution_role_arn = data.aws_iam_role.lab.arn
+   depends_on = [docker_registry_image.coughoverflow_push]
+   runtime_platform {
+    cpu_architecture        = "ARM64"
+    operating_system_family = "LINUX"
+  }
+
+   container_definitions = <<DEFINITION
+   [ 
+   { 
+    "image": "${local.image}",
+    "cpu": 1024,
+    "memory": 2048,
+    "name": "coughoverflow", 
+    "networkMode": "awsvpc", 
+    "portMappings": [ 
+      { 
+       "containerPort": 6400,
+       "hostPort": 6400 
+      } 
+    ],
+     "environment": [ 
+      { 
+       "name": "SQLALCHEMY_DATABASE_URI", 
+       "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}" 
+      } 
+    ],
+    "logConfiguration": { 
+      "logDriver": "awslogs", 
+      "options": { 
+       "awslogs-group": "/coughoverflow/coughlogs", 
+       "awslogs-region": "us-east-1", 
+       "awslogs-stream-prefix": "ecs", 
+       "awslogs-create-group": "true" 
+      } 
+    } 
+   } 
+ ]
+   DEFINITION 
+}
+
+resource "aws_ecs_service" "coughoverflow" { 
+   name = "coughoverflow" 
+   cluster = aws_ecs_cluster.coughoverflow.id
+   task_definition = aws_ecs_task_definition.coughoverflow.arn
+   desired_count = 1 
+   launch_type = "FARGATE" 
+ 
+   network_configuration { 
+    subnets = data.aws_subnets.private.ids
+    security_groups = [aws_security_group.coughoverflow.id] 
+    assign_public_ip = true 
+   }
+   
+   depends_on = [ aws_db_instance.coughoverflow_database ]
+}
+
+resource "aws_security_group" "coughoverflow" { 
+   name = "coughoverflow" 
+   description = "TaskOverflow Security Group" 
+ 
+   ingress { 
+    from_port = 6400 
+    to_port = 6400 
+    protocol = "tcp" 
+    cidr_blocks = ["0.0.0.0/0"] 
+   } 
+ 
+   ingress { 
+    from_port = 80 
+    to_port = 80 
+    protocol = "tcp" 
+    cidr_blocks = ["0.0.0.0/0"] 
+   } 
+ 
+   egress { 
+    from_port = 0 
+    to_port = 0 
+    protocol = "-1" 
+    cidr_blocks = ["0.0.0.0/0"] 
+   } 
+}
+
+output "ecr_repository_url" {
+  value = aws_ecr_repository.coughoverflow.repository_url
+  description = "The URL of the ECR repository"
 }
 
 /*

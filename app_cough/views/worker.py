@@ -1,4 +1,4 @@
-import subprocess
+import subprocess, os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -7,8 +7,12 @@ from app_cough.models import dbmodels
 
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
 def worker_image(input: str, output: str, request:str, tmp_loc: str):
-    SQLALCHEMY_DATABASE_URL = "postgresql://cough_user:superSecretPassword.23@database:5432/cough"
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    # SQLALCHEMY_DATABASE_URL = "postgresql://cough_user:superSecretPassword.23@database:5432/cough"
+    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+    if not SQLALCHEMY_DATABASE_URI:
+        raise RuntimeError("SQLALCHEMY_DATABASE_URI is not set in environment...")
+
+    engine = create_engine(SQLALCHEMY_DATABASE_URI)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
     
