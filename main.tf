@@ -159,7 +159,11 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
       { 
        "name": "SQLALCHEMY_DATABASE_URI", 
        "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}" 
-      } 
+      },
+      {
+        "name": "PYTHONPATH",
+        "value": "/app"
+      }
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
