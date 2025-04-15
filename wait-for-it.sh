@@ -1,3 +1,5 @@
+#!/bin/bash
+
 HEALTH_URL="http://localhost:8080/api/v1/health"
 echo "Health URL: $HEALTH_URL"
 echo "Waiting for service to be healthy"
