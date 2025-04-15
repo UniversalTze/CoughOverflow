@@ -71,6 +71,7 @@ resource "aws_db_instance" "coughoverflow_database" {
 resource "aws_security_group" "coughoverflow_database" { 
  name = "coughoverflow_database"  # Name of security group in AWS
  description = "Set up inbound and outbound Postgresql traffic" 
+ vpc_id = data.aws_vpc.default.id # Good Software principles
  
  # Since no VPC created, it will used default VPC for region
  # Each AWS region has 6 subnets (one in each AZ). Internet gateway, rotue tables, etc included.
@@ -128,7 +129,6 @@ resource "docker_image" "coughoverflow" {
    platform = "linux/arm64"
  } 
 } 
-
 
 resource "docker_registry_image" "coughoverflow_push" { 
  name = docker_image.coughoverflow.name
@@ -199,6 +199,12 @@ resource "aws_ecs_service" "coughoverflow" {
    }
    
    depends_on = [ aws_db_instance.coughoverflow_database ]
+
+   load_balancer { 
+    target_group_arn = aws_lb_target_group.coughoverflow.arn
+    container_name   = "coughoverflow" 
+    container_port   = 6400 
+  }
 }
 
 resource "aws_security_group" "coughoverflow" { 
@@ -210,15 +216,8 @@ resource "aws_security_group" "coughoverflow" {
     to_port = 6400 
     protocol = "tcp" 
     cidr_blocks = ["0.0.0.0/0"] 
-   } 
- 
-   ingress { 
-    from_port = 80 
-    to_port = 80 
-    protocol = "tcp" 
-    cidr_blocks = ["0.0.0.0/0"] 
-   } 
- 
+   }
+   
    egress { 
     from_port = 0 
     to_port = 0 
@@ -232,9 +231,85 @@ output "ecr_repository_url" {
   description = "The URL of the ECR repository"
 }
 
-/*
+################################### Load balancer
+resource "aws_lb_target_group" "coughoverflow" {  # Used to send load to fargate instance
+  name          = "coughoverflow" 
+  port          = 6400 
+  protocol      = "HTTP" 
+  vpc_id        = aws_security_group.coughoverflow.vpc_id
+  target_type   = "ip"
+ 
+  health_check { 
+    path                = "/api/v1/health" 
+    port                = "6400" 
+    protocol            = "HTTP" 
+    healthy_threshold   = 2 
+    unhealthy_threshold = 2 
+    timeout             = 5 
+    interval            = 60
+  } 
+}
+
+resource "aws_lb" "coughoverflow" { 
+  name               = "coughoverflow" 
+  internal           = false 
+  load_balancer_type = "application" 
+  subnets            = data.aws_subnets.private.ids 
+  security_groups    = [aws_security_group.coughoverflow_lb.id] 
+} 
+
+resource "aws_security_group" "coughoverflow_lb" { 
+  name        = "coughoverflow_lb" 
+  description = "CoughOverflow Load Balancer Security Group" 
+ 
+  ingress { 
+    from_port     = 80 
+    to_port       = 80 
+    protocol      = "tcp" 
+    cidr_blocks   = ["0.0.0.0/0"] 
+  } 
+ 
+  egress { 
+    from_port     = 0 
+    to_port       = 0 
+    protocol      = "-1" 
+    cidr_blocks   = ["0.0.0.0/0"] 
+  } 
+ 
+  tags = { 
+    Name = "coughoverflow_lb_security_group" 
+  } 
+}
+
+resource "aws_lb_listener" "coughoverflow" { 
+  load_balancer_arn   = aws_lb.coughoverflow.arn #ARN -> Amazon Resource Name
+  port                = "80" 
+  protocol            = "HTTP" 
+ 
+  default_action { 
+    type              = "forward" 
+    target_group_arn  = aws_lb_target_group.coughoverflow.arn
+  } 
+}
+
+############################ Auto Scaling
+resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (api for different services)
+  max_capacity        = 4 
+  min_capacity        = 1 
+  resource_id         = "service/coughoverflow/coughoverflow"  # resource_id = "service/<cluster_name>/<service_name>"
+  scalable_dimension  = "ecs:service:DesiredCount" 
+  service_namespace   = "ecs" 
+ 
+  depends_on = [ aws_ecs_service.coughoverflow ] 
+}
+
+output "coughoverflow_dns_name" { 
+  value = aws_lb.coughoverflow.dns_name 
+  description = "DNS name of the CoughOverflow load balancer." 
+}
+
 resource "local_file" "url" {
-    content  = "http://my-url/"  # Replace this string with a URL from your Terraform.
+    content  = "${aws_lb.coughoverflow.dns_name}/api/v1"
+    # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
-*/

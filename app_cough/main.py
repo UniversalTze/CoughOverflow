@@ -4,7 +4,7 @@ import urllib.request # Downloading CSV file
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
-from .models import engine, seed_labs, Base, dbmodels, SessionLocal, schemas
+from .models import engine, seed_labs, dbmodels, SessionLocal, schemas
 from pathlib import Path
 
 #Command to start app, might need to SH.
