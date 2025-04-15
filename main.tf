@@ -97,16 +97,6 @@ resource "aws_security_group" "coughoverflow_database" {
  } 
 }
 
-output "db_endpoint" {
-  description = "The address to connect to the PostgreSQL database"
-  value       = aws_db_instance.coughoverflow_database.endpoint
-}
-
-output "db_port" {
-  description = "Database port"
-  value       = aws_db_instance.coughoverflow_database.port
-}
-
 # For docker authorisation
 data "aws_ecr_authorization_token" "ecr_token" {} 
  
@@ -126,7 +116,7 @@ resource "docker_image" "coughoverflow" {
  name = "${aws_ecr_repository.coughoverflow.repository_url}:latest" 
  build { 
    context = "." #build image locally
-   platform = "linux/arm64"
+   platform = "linux/amd64"
  } 
 } 
 
@@ -147,7 +137,7 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
    execution_role_arn = data.aws_iam_role.lab.arn
    depends_on = [docker_registry_image.coughoverflow_push]
    runtime_platform {
-    cpu_architecture        = "ARM64"
+    cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
 
@@ -226,11 +216,6 @@ resource "aws_security_group" "coughoverflow" {
    } 
 }
 
-output "ecr_repository_url" {
-  value = aws_ecr_repository.coughoverflow.repository_url
-  description = "The URL of the ECR repository"
-}
-
 ################################### Load balancer
 resource "aws_lb_target_group" "coughoverflow" {  # Used to send load to fargate instance
   name          = "coughoverflow" 
@@ -303,13 +288,8 @@ resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (ap
   depends_on = [ aws_ecs_service.coughoverflow ] 
 }
 
-output "coughoverflow_dns_name" { 
-  value = aws_lb.coughoverflow.dns_name 
-  description = "DNS name of the CoughOverflow load balancer." 
-}
-
 resource "local_file" "url" {
-    content  = "${aws_lb.coughoverflow.dns_name}/api/v1"
+    content  = "http://${aws_lb.coughoverflow.dns_name}/api/v1"
     # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
