@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends
-from ..models import crud
-from ..models.database import get_db
-# from app_cough.models import crud, get_db
+from app_cough.models import crud, get_db
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
 

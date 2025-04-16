@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "TEST TO SEE"
+
 export DOCKER_BUILDKIT=1
 terraform init
 
