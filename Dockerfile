@@ -38,6 +38,15 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi && \
     chmod +x overflowengine
 
+# DEBUG IMPORT BLOCK
+RUN echo ">>> Checking environment setup" && \
+    echo "CWD: $(pwd)" && \
+    echo "PYTHONPATH: $PYTHONPATH" && \
+    echo "PATH: $PATH" && \
+    ls -la /app/app_cough && \
+    ls -la /app/app_cough/models && \
+    python3 -c "from app_cough.models import crud; print('app_cough.models.crud import worked')"
+
 # Define the container's command to run the app, exposing port 6400
 # CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
 CMD ["python3", "-m", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"]
