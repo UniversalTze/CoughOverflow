@@ -17,6 +17,7 @@ RUN pipx run poetry install --no-root
 
 # Copy the application code
 COPY app_cough app_cough
+ENV PYTHONPATH=/app
 
 # Updated computer architecture selection of the OverflowEngine binary.
 # This appears to work on Windows, Macs, and EC2 AMD64 and ARM64 instances.
