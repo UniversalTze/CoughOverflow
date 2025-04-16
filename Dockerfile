@@ -33,6 +33,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # set the correct python to use
 ENV PATH="/root/.cache/pypoetry/virtualenvs/cough-overflow-api-9TtSrW0h-py3.12/bin:$PATH"
 # Define the container's command to run the app, exposing port 6400
-CMD ["pipx", "run", "poetry", "run", "python3", "-m", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
+CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
 #CMD ["sh", "-c", "PYTHONPATH=/app pipx run poetry run uvicorn app_cough.main:app --host 0.0.0.0 --port 6400"]
 
