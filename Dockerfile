@@ -17,6 +17,7 @@ RUN pipx run poetry install --no-root
 
 # Copy the application code
 COPY app_cough app_cough
+
 ENV PYTHONPATH=/app
 
 # Updated computer architecture selection of the OverflowEngine binary.
@@ -31,4 +32,5 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 # Define the container's command to run the app, exposing port 6400
 CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
+#CMD ["sh", "-c", "PYTHONPATH=/app pipx run poetry run uvicorn app_cough.main:app --host 0.0.0.0 --port 6400"]
 
