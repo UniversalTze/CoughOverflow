@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
-from ..models import crud, get_db
+from ..models import crud
+from ..models.database import get_db
 # from app_cough.models import crud, get_db
 from sqlalchemy.orm import Session
 from fastapi.responses import JSONResponse
@@ -25,7 +26,7 @@ def get_health(db: Session = Depends(get_db)):
     else: 
         return JSONResponse(status_code=503, content=response)
 
-def check_db_health(db: Session): 
+def check_db_health(db: Session):
     res = crud.get_single_lab(db)
     return res is not None
 
