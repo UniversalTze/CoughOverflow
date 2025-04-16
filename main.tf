@@ -155,7 +155,15 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
        "hostPort": 6400 
       } 
     ],
-     "environment": [ 
+     "environment": [
+      {
+       "name": "PYTHONPATH",
+       "value": "/app"
+      },
+      {
+       "name": "PATH",
+       "value": "/app/.venv/bin:/root/.local/bin:/usr/bin:$PATH"
+      },
       { 
        "name": "SQLALCHEMY_DATABASE_URI", 
        "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}" 
@@ -293,3 +301,4 @@ resource "local_file" "url" {
     # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
+

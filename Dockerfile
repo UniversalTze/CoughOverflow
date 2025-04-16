@@ -13,10 +13,18 @@ WORKDIR /app
 
 # Install poetry dependencies
 COPY pyproject.toml ./
+
+# Create virual env inside project directory /app/.venv (instead of default global cache)
+RUN pipx run poetry config virtualenvs.in-project true
+
+# Temp pipx managed poetry instance that installs all dependencies into a persistent virtual env (/app/.venv/) due to above command
 RUN pipx run poetry install --no-root
 
 # Copy the application code
 COPY app_cough app_cough
+
+# Add .venv to PATH for runtime
+ENV PATH="/app/.venv/bin:/root/.local/bin:/usr/bin:$PATH"
 
 ENV PYTHONPATH=/app
 
@@ -30,9 +38,5 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi && \
     chmod +x overflowengine
 
-# set the correct python to use
-ENV PATH="/root/.cache/pypoetry/virtualenvs/cough-overflow-api-9TtSrW0h-py3.12/bin:$PATH"
 # Define the container's command to run the app, exposing port 6400
 CMD ["pipx", "run", "poetry", "run", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"] 
-#CMD ["sh", "-c", "PYTHONPATH=/app pipx run poetry run uvicorn app_cough.main:app --host 0.0.0.0 --port 6400"]
-
