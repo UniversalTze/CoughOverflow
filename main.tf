@@ -135,6 +135,7 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
    cpu = 1024 
    memory = 2048 
    execution_role_arn = data.aws_iam_role.lab.arn
+   task_role_arn = data.aws_iam_role.lab.arn
    depends_on = [docker_registry_image.coughoverflow_push]
    runtime_platform {
     cpu_architecture        = "X86_64"
@@ -296,9 +297,41 @@ resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (ap
   depends_on = [ aws_ecs_service.coughoverflow ] 
 }
 
+########################### S3 Bucket
+resource "aws_s3_bucket" "coughoverlow_S3_bucket_123" {
+  bucket = "coughoverflow-s3-23182020" 
+  force_destroy = true  # allows bucket deletion even if non-empty
+}
+
+resource "aws_s3_bucket_policy" "allow_access_from_another_account" {
+  bucket = aws_s3_bucket.coughoverlow_S3_bucket_123.id
+  policy = data.aws_iam_policy_document.allow_access_from_lab_role.json
+}
+
+data "aws_iam_policy_document" "allow_access_from_lab_role" {
+  statement {
+    principals {
+      type        = "AWS"
+      identifiers = [data.aws_iam_role.lab.arn]
+    }
+
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket",
+      "s3:PutObject",
+    ]
+
+    resources = [
+      aws_s3_bucket.coughoverlow_S3_bucket_123.arn,
+      "${aws_s3_bucket.coughoverlow_S3_bucket_123.arn}/*",
+    ]
+  }
+}
+
 resource "local_file" "url" {
     content  = "http://${aws_lb.coughoverflow.dns_name}/api/v1"
     # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
+
 
