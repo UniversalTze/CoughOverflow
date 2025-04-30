@@ -1,7 +1,8 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 # URL = "postgresql://user:password@localhost/dbname" # for locally hosted db
 # URL = "postgresql://user:password@database/dbname" # for cotainer db
@@ -10,8 +11,8 @@ SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
 if not SQLALCHEMY_DATABASE_URI:
     raise RuntimeError("SQLALCHEMY_DATABASE_URI is not set in environment...")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URI)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URI, echo=True)
+AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
 # Ensure schemas exist before creating tables
@@ -19,10 +20,7 @@ Base = declarative_base()
 #    conn.execute(text("CREATE SCHEMA IF NOT EXISTS schema_a")) #Change schema_a and b
 #    conn.execute(text("CREATE SCHEMA IF NOT EXISTS schema_b"))
 
-def get_db():
-    db = SessionLocal()
-    try:
+async def get_db():
+    async with AsyncSessionLocal() as db:
         yield db
-    finally:
-        db.close()
 
