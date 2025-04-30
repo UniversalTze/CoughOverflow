@@ -1,7 +1,8 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from . import dbmodels, schemas
 from app_cough import utils
 from datetime import datetime, timezone
+from sqlalchemy import select
 
 # Create, Read, Update and Delete Operations with database
 START_DATE =  "start_date"
@@ -13,23 +14,28 @@ LAB = "lab"
 LIMIT = "limit"
 OFFSET = "offset"
 
+async def get_single_lab(db: AsyncSession):
+    result = await db.execute(select(dbmodels.Labs).limit(1))
+    return result  # If this line runs, DB is alive
+    #return db.query(dbmodels.Labs).first()
 
-def get_single_lab(db: Session): 
-    return db.query(dbmodels.Labs).first()
+async def get_valid_labs(db: AsyncSession):
+    result = await db.execute(select(dbmodels.Labs.id))
+    return result.scalars().all()
 
-def get_valid_labs(db: Session):
-    return db.query(dbmodels.Labs).all()
+async def get_lab_ids(db: AsyncSession):
+    #result = await db.execute(dbmodels.Request.lab_id).distinct().all()
+    stmt = select(dbmodels.Request.lab_id).distinct()
+    result = await db.execute(stmt)
+    return result.scalars().all()
 
-def get_lab_ids(db: Session):
-    return db.query(dbmodels.Request.lab_id).distinct().all()
-
-def get_requests(db:Session, request: str): #should only be one entry of req id as primary key
+def get_requests(db:AsyncSession, request: str): #should only be one entry of req id as primary key
     return db.query(dbmodels.Request).filter(dbmodels.Request.request_id == request).first()
 
-def get_patient_id(db: Session, patient:str):
+def get_patient_id(db: AsyncSession, patient:str):
     return db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == patient).first()
 
-def get_patient_results(db: Session, required_param: str, optional_params: dict):
+def get_patient_results(db: AsyncSession, required_param: str, optional_params: dict):
     query = db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == required_param)
 
     if (optional_params[START_DATE] is not None): 
@@ -47,7 +53,7 @@ def get_patient_results(db: Session, required_param: str, optional_params: dict)
 
     return query.all() # For now.
 
-def get_lab_results(db: Session, params: dict, required:str):
+def get_lab_results(db: AsyncSession, params: dict, required:str):
     query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
     query = query.filter(dbmodels.Request.created_at > params[START_DATE]) if params[START_DATE] != None else query
     query = query.filter(dbmodels.Request.created_at <= params[END_DATE]) if params[END_DATE] != None else query
@@ -56,7 +62,7 @@ def get_lab_results(db: Session, params: dict, required:str):
     query = query.filter(dbmodels.Request.urgent == params[URGENT]) if params[URGENT] != None else query
     return query.offset(params[OFFSET]).limit(params[LIMIT]).all()
 
-def get_summary_results(db: Session, required: str): 
+def get_summary_results(db: AsyncSession, required: str): 
     query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
     # build the counts from here (build the schema in here
     # pending
@@ -77,7 +83,7 @@ def get_summary_results(db: Session, required: str):
                                    generated_at=requested_time)
     return result
 
-def update_requests(db: Session, requestobj: dbmodels.Request, lab_id: str):
+def update_requests(db: AsyncSession, requestobj: dbmodels.Request, lab_id: str):
     requestobj.lab_id = lab_id
     requestobj.updated_at = datetime.now(timezone.utc) # updates it no matter what
     db.commit()

@@ -16,7 +16,7 @@ services:
     build: .
     restart: always
     environment:
-      SQLALCHEMY_DATABASE_URI: "postgresql:\
+      SQLALCHEMY_DATABASE_URI: "postgresql+asyncpg:\
         //cough_user:superSecretPassword.23@database:5432/cough"
     ports:
       - "8080:6400" #8080 is outside port for localhost to listen for traffic on, 2nd arg is entry point for container.
