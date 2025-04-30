@@ -4,7 +4,7 @@ import urllib.request # Downloading CSV file
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
-from .models import engine, seed_labs, dbmodels, SessionLocal, schemas
+from .models import engine, seed_labs, dbmodels, AsyncSessionLocal, schemas
 from pathlib import Path
 
 #Command to start app, might need to SH.
@@ -36,7 +36,7 @@ def on_startup():
     
     path, _ =  urllib.request.urlretrieve("https://csse6400.uqcloud.net/resources/labs.csv", "./app_cough/labs.csv")
 
-    db = SessionLocal()
+    db = AsyncSessionLocal()
     if db.query(dbmodels.Labs).count() == 0: # valid labs has not been added yet
         base_dir = Path(__file__).resolve().parent  # Directory of main.py
         file_path = str(base_dir / "labs.csv")

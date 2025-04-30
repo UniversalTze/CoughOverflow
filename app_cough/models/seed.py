@@ -1,8 +1,8 @@
-from .database import SessionLocal
+from .database import AsyncSessionLocal
 from .dbmodels import Labs
 
 def seed_labs(file_path: str): 
-    db = SessionLocal()
+    db = AsyncSessionLocal()
     with open(file_path, 'r', encoding="utf-8-sig", newline='') as csvfile:
         # Added encoding as csv had some buggy characters 
         try:
