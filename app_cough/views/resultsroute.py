@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app_cough.models import schemas, crud, dbmodels, database, get_db
 from datetime import datetime
 from app_cough import utils
@@ -14,12 +14,12 @@ DEFAULT_OFFSET = 0
 resultRouter = APIRouter()
 
 @resultRouter.get('/patients/results') #response_model = schemas.ResultPatient)
-def get_patient_results(patient_id: str = Query(None, description="patient_id"),
+async def get_patient_results(patient_id: str = Query(None, description="patient_id"),
                         start: str = Query(None, description="start"),
                         end: str = Query(None, description="end"),
                         status: str = Query(None, description="status"),
                         urgent: bool = Query(None, description="urgent"),
-                        db:Session = Depends(get_db), 
+                        db:AsyncSession = Depends(get_db), 
                         request: Request= None):
     # check params given to ensure no duplicates and additional params provided
     query = {"patient_id", "start", "end", "status", "urgent"}
@@ -63,7 +63,7 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
             end = datetime.fromisoformat(end)
 
     # if patient id not in database or no results assocaited with patient with parameters return 404 error. 
-    patient = crud.get_patient_id(db, patient_id)
+    patient = await crud.get_patient_id(db, patient_id)
     optional = {
         "start_date": start,
         "end_date": end,
@@ -71,8 +71,8 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
         "urgent": urgent
     }
 
-    res = crud.get_patient_results(db, patient_id, optional_params=optional)
-    if patient is None or not res:
+    res = await crud.get_patient_results(db, patient_id, optional_params=optional)
+    if patient is None or not res: # results is empty
         error = {"error": "patient id does not correspond to a known patient",
                 "detail": "No associated records with this patient id with the given lookup parameters."}
         return JSONResponse(status_code=404, 
@@ -87,8 +87,8 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
             patient_id=obj.patient_id,
             result=obj.result,
             urgent=obj.urgent,
-            created_at=obj.created_at.isoformat(timespec='seconds') + 'Z',
-            updated_at=obj.updated_at.isoformat(timespec='seconds') + 'Z'
+            created_at=obj.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
+            updated_at=obj.updated_at.isoformat(timespec='seconds').replace('+00:00','Z')
         )
         result.append(analysis.dict())
     return JSONResponse(status_code=200, 
@@ -97,7 +97,7 @@ def get_patient_results(patient_id: str = Query(None, description="patient_id"),
                             })
 
 @resultRouter.get('/labs/results/{lab_id}')
-def get_lab_results(lab_id: str,
+async def get_lab_results(lab_id: str,
                     limit: int = Query(None, description="limit"),
                     offset: int = Query(None, description="offset"),
                     start: str = Query(None, description="start"),
@@ -105,7 +105,7 @@ def get_lab_results(lab_id: str,
                     patient_id: str = Query(None, description="patient_id"),
                     status: str = Query(None, description="status"),
                     urgent: bool = Query(None, description="urgent"),
-                    db:Session = Depends(get_db),
+                    db:AsyncSession = Depends(get_db),
                     request: Request = None):
     #check lab id (required) found in path
     if lab_id is None:
@@ -168,7 +168,7 @@ def get_lab_results(lab_id: str,
         "status": status,
         "urgent": urgent
     }
-    lab_results = crud.get_lab_results(db, data, lab_id)
+    lab_results = await crud.get_lab_results(db, data, lab_id)
     result = []
     for obj in lab_results: 
         analysis = schemas.Analysis(
@@ -177,8 +177,8 @@ def get_lab_results(lab_id: str,
             patient_id=obj.patient_id,
             result=obj.result,
             urgent=obj.urgent,
-            created_at=obj.created_at.isoformat(timespec='seconds') + 'Z',
-            updated_at=obj.updated_at.isoformat(timespec='seconds') + 'Z'
+            created_at=obj.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
+            updated_at=obj.updated_at.isoformat(timespec='seconds').replace('+00:00','Z')
         )
         result.append(analysis.dict())
     return JSONResponse(status_code=200, 
@@ -187,9 +187,9 @@ def get_lab_results(lab_id: str,
                             }) 
 
 @resultRouter.get('/labs/results/{lab_id}/summary')
-def get_result_summary(lab_id: str, start: str = Query(None, description="start"), 
+async def get_result_summary(lab_id: str, start: str = Query(None, description="start"), 
                        end: str = Query(None, description="end"), 
-                       db:Session = Depends(get_db), request: Request = None):
+                       db:AsyncSession = Depends(get_db), request: Request = None):
     # required params (check id)
     if lab_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
@@ -226,7 +226,7 @@ def get_result_summary(lab_id: str, start: str = Query(None, description="start"
         else:
             end = datetime.fromisoformat(end)
     # everything is valid, begin processing request
-    data = crud.get_summary_results(db, lab_id)
+    data = await crud.get_summary_results(db, lab_id)
     return JSONResponse(status_code=200, 
                             content=data.dict())
 

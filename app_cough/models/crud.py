@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import dbmodels, schemas
 from app_cough import utils
 from datetime import datetime, timezone
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 # Create, Read, Update and Delete Operations with database
 START_DATE =  "start_date"
@@ -39,8 +39,9 @@ async def get_patient_id(db: AsyncSession, patient:str):
     result = await db.execute(stmt)
     return result.scalars().one_or_none()
 
-def get_patient_results(db: AsyncSession, required_param: str, optional_params: dict):
-    query = db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == required_param)
+async def get_patient_results(db: AsyncSession, required_param: str, optional_params: dict):
+    query = select(dbmodels.Request).filter(dbmodels.Request.patient_id == required_param)
+    # query = db.query(dbmodels.Request).filter(dbmodels.Request.patient_id == required_param)
 
     if (optional_params[START_DATE] is not None): 
         query = query.filter(dbmodels.Request.created_at >= optional_params[START_DATE])
@@ -54,28 +55,42 @@ def get_patient_results(db: AsyncSession, required_param: str, optional_params: 
 
     if (optional_params[URGENT] is not None):
         query = query.filter(dbmodels.Request.urgent == optional_params[URGENT])
+    
+    result = await db.execute(query)
+    return result.scalars().all()
 
-    return query.all() # For now.
-
-def get_lab_results(db: AsyncSession, params: dict, required:str):
-    query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
+async def get_lab_results(db: AsyncSession, params: dict, required:str):
+    #query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
+    query = select(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
     query = query.filter(dbmodels.Request.created_at > params[START_DATE]) if params[START_DATE] != None else query
     query = query.filter(dbmodels.Request.created_at <= params[END_DATE]) if params[END_DATE] != None else query
     query = query.filter(dbmodels.Request.patient_id == params[PATIENT]) if params[PATIENT] != None else query
     query = query.filter(dbmodels.Request.result == params[STATUS]) if params[STATUS] != None else query
     query = query.filter(dbmodels.Request.urgent == params[URGENT]) if params[URGENT] != None else query
-    return query.offset(params[OFFSET]).limit(params[LIMIT]).all()
+    # Add offset and limit
+    query = query.offset(params[OFFSET]).limit(params[LIMIT])
+    result = await db.execute(query)
+    return result.scalars().all()
 
-def get_summary_results(db: AsyncSession, required: str): 
-    query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
-    # build the counts from here (build the schema in here
-    # pending
-    pending = query.filter(dbmodels.Request.result == schemas.StatusEnum.PENDING.value).count()
-    covid = query.filter(dbmodels.Request.result == schemas.StatusEnum.COVID.value).count()
-    h5n1 = query.filter(dbmodels.Request.result == schemas.StatusEnum.H5N1.value).count()
-    healthy = query.filter(dbmodels.Request.result == schemas.StatusEnum.HEALTHY.value).count()
-    failed = query.filter(dbmodels.Request.result == schemas.StatusEnum.FAILED.value).count()
-    urgent = query.filter(dbmodels.Request.urgent == True).count()
+async def get_summary_results(db: AsyncSession, required: str): 
+    #base statement
+    base = select(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
+    # query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
+    # base.subquery() makes a subquery table from select statement written in base.
+    pending_stmt = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.PENDING.value)
+    covid_stmt   = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.COVID.value)
+    h5n1_stmt    = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.H5N1.value)
+    healthy_stmt = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.HEALTHY.value)
+    failed_stmt  = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.FAILED.value)
+    urgent_stmt  = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.urgent == True)
+
+    # run all counts concurrently
+    pending = (await db.execute(pending_stmt)).scalar()
+    covid   = (await db.execute(covid_stmt)).scalar()
+    h5n1    = (await db.execute(h5n1_stmt)).scalar()
+    healthy = (await db.execute(healthy_stmt)).scalar()
+    failed  = (await db.execute(failed_stmt)).scalar()
+    urgent  = (await db.execute(urgent_stmt)).scalar()
     requested_time = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
     result = schemas.ResultSummary(lab_id=required, 
                                    pending=pending,
