@@ -3,7 +3,7 @@ import base64, uuid, tempfile, multiprocessing, os
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app_cough.models import schemas, crud, dbmodels, database, get_db
 from typing import Union
@@ -16,11 +16,11 @@ MAX_KB = 150 * 1000
 analysisrouter = APIRouter()
 
 @analysisrouter.post('/analysis', response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError])
-def create_analysis(patient_id: str = Query(None, description="patient_id"), 
+async def create_analysis(patient_id: str = Query(None, description="patient_id"), 
                     lab_id: str = Query(None, description="lab_id"), 
                     urgent: bool = Query(None, description="urgent"),
                     body: dict = Body(None), 
-                    db: Session = Depends(get_db), 
+                    db: AsyncSession = Depends(get_db), 
                     request: Request= None): 
     req_body = {"image"}
     if (body is None):
@@ -52,7 +52,7 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    if not utils.is_valid_lab_id(lab_id, db): 
+    if (not await utils.is_valid_lab_id(lab_id, db)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -84,15 +84,16 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         urgent=urgent
     )
     db.add(request)
-    db.commit()
+    await db.commit()
+    await db.refresh(request)
     message = schemas.AnalysisPost(
         id=request.request_id,
-        created_at=request.created_at.isoformat(timespec='seconds') + 'Z',
-        updated_at=request.created_at.isoformat(timespec='seconds') + 'Z',
+        created_at=request.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
+        updated_at=request.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
         status=request.result
     )
     # get the nessary stuff from request before closing connection for fork()
-    db.close()
+    await db.close()
 
     # create a temp directory to store these results. 
     tmp_dir = tempfile.gettempdir()
@@ -103,10 +104,12 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
         f.write(decoded_img)
     
     # add to s3 bucket
+    """
     s3 = boto3.client('s3')
     bucket_name = "coughoverflow-s3-23182020"
     s3_key = f"images/{id_req}.jpg"
     s3.upload_file(input_path, bucket_name, s3_key)
+    """
 
     # Need to fork a process
     process = multiprocessing.Process(target=worker.worker_image, args=(input_path, output, id_req, tmp_dir))
@@ -114,7 +117,9 @@ def create_analysis(patient_id: str = Query(None, description="patient_id"),
     return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
-def get_request(request_id: str = Query(None, description="request_id"), db: Session = Depends(get_db), request: Request= None):
+async def get_request(request_id: str = Query(None, description="request_id"), 
+                      db: AsyncSession = Depends(get_db), 
+                      request: Request= None):
     query = {"request_id"}
     query_params = request.query_params 
     if (query_params and not utils.validate_query(query_params, query)):
@@ -125,7 +130,7 @@ def get_request(request_id: str = Query(None, description="request_id"), db: Ses
         error = utils.create_error(schemas.ErrorTypeEnum.missing_request_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    result = crud.get_requests(db, request_id)
+    result = await crud.get_requests(db, request_id)
     if result is None:
         return JSONResponse(status_code=404, 
                                 content= {
@@ -138,16 +143,16 @@ def get_request(request_id: str = Query(None, description="request_id"), db: Ses
             patient_id=result.patient_id,
             result=result.result,
             urgent=result.urgent,
-            created_at=result.created_at.isoformat(timespec='seconds') + 'Z',
-            updated_at=result.updated_at.isoformat(timespec='seconds') + 'Z',
+            created_at=result.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
+            updated_at=result.updated_at.isoformat(timespec='seconds').replace('+00:00','Z'),
         )
     return JSONResponse(status_code=200, 
                                 content=info.dict())
     
 @analysisrouter.put('/analysis') # response_model= Union[schemas.AnalysisPost, schemas.AnalysisUpdateError])
-def update_request(request_id: str = Query(None, description="request_id"), 
+async def update_request(request_id: str = Query(None, description="request_id"), 
                    lab_id: str = Query(None, description="lab_id"), 
-                   db: Session = Depends(get_db), request: Request= None): 
+                   db: AsyncSession = Depends(get_db), request: Request= None): 
     query = {"request_id", "lab_id"}
     query_params = request.query_params
     if (query_params and not utils.validate_query(given=query_params, required=query)):
@@ -162,13 +167,12 @@ def update_request(request_id: str = Query(None, description="request_id"),
         error = utils.create_error(schemas.ErrorTypeEnum.missing_request_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    labs = crud.get_valid_labs(db) # list of all object items
-    ids = set(lab.id for lab in labs)
-    if (lab_id not in ids):
+
+    if (not await utils.is_valid_lab_id(lab_id, db)):
         error = schemas.AnalysisUpdateError(detail="Invalid lab identifier.")
         return JSONResponse(status_code=400, 
                             content=error.dict())
-    req = crud.get_requests(db, request_id) # (in a tuple sql-alchemy) 0th index is id and other one is empty
+    req = await crud.get_requests(db, request_id) # returns None or ORM object
     if req is None:
         return JSONResponse(status_code=404, 
                                 content= {
@@ -176,12 +180,12 @@ def update_request(request_id: str = Query(None, description="request_id"),
                                     "detail": "request id does not correspond to any submitted analysis requests"
                                 })
     # there is a valid result id and lab is valid, need to update the row. 
-    req = crud.update_requests(db, req, lab_id) # refresh in update_request function
+    req = await crud.update_requests(db, req, lab_id) # refresh in update_request function
     info = schemas.Analysis(request_id=req.request_id,
                 lab_id=req.lab_id,
                 patient_id=req.patient_id,
                 result=req.result,
                 urgent=req.urgent,
-                created_at=req.created_at.isoformat(timespec='seconds') + 'Z',
-                updated_at=req.updated_at.isoformat(timespec='seconds') + 'Z')
+                created_at=req.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
+                updated_at=req.updated_at.isoformat(timespec='seconds').replace('+00:00','Z'))
     return JSONResponse(status_code=200, content=info.dict())

@@ -13,8 +13,8 @@ class Request(Base):
     patient_id = Column(String, index=True, nullable=False)
     result = Column(String, default="pending", nullable=False)
     urgent = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, nullable=False, 
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), nullable=False, 
                         default=datetime.now(timezone.utc))
 
     def to_dict(self): 

@@ -2,9 +2,11 @@ from datetime import datetime
 from starlette.datastructures import QueryParams
 from app_cough.models import schemas, crud, get_db
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 LENGTH_PATIENT_ID = 11
+
+# only is_valid_lab_id needs to be async as it process data from async connection db. (Rest is just pure python logic)
 
 def validate_query(given: QueryParams, required: set):
     params = [arg for arg in given]
@@ -36,9 +38,9 @@ def is_rfc3339(date_str: str) -> bool:
     except ValueError as e:
         return False
     
-def is_valid_lab_id(lab_id: str, db:Session):
-    labs = crud.get_valid_labs(db) # list of all object items
-    ids = set(lab.id for lab in labs)
+async def is_valid_lab_id(lab_id: str, db:AsyncSession): # need to be async as accessing async db. 
+    labs = await crud.get_valid_labs(db) # list of all object items
+    ids = set(labs)
     if (lab_id not in ids):
         return False
     return True
