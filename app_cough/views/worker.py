@@ -31,7 +31,6 @@ def worker_image(input: str, output: str, request:str, tmp_loc: str):
         message = RETURN_FROM_ENGINE.get(message, "failed")
     req = db.query(dbmodels.Request).filter(dbmodels.Request.request_id == request).first()
     req.result = message
-    print(req.result)
     db.commit()
     db.refresh(req)
     db.close()

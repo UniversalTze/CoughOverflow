@@ -73,16 +73,18 @@ async def get_lab_results(db: AsyncSession, params: dict, required:str):
     return result.scalars().all()
 
 async def get_summary_results(db: AsyncSession, required: str): 
-    #base statement
+    #base statement (Select * FROM Request where x.labid = required)
     base = select(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
-    # query = db.query(dbmodels.Request).filter(dbmodels.Request.lab_id == required)
-    # base.subquery() makes a subquery table from select statement written in base.
-    pending_stmt = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.PENDING.value)
-    covid_stmt   = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.COVID.value)
-    h5n1_stmt    = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.H5N1.value)
-    healthy_stmt = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.HEALTHY.value)
-    failed_stmt  = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.result == schemas.StatusEnum.FAILED.value)
-    urgent_stmt  = select(func.count()).select_from(base.subquery()).filter(dbmodels.Request.urgent == True)
+    sub = base.subquery() # subquery
+    # base.subquery() makes a subquery table from select statement written in base. 
+    # sub.c now relates to the rows returned from subquery (filtering on id)
+    # and expose all columns of Request to be used in further filters. (Columns that are selectable)
+    pending_stmt = select(func.count()).select_from(sub).filter(sub.c.result == schemas.StatusEnum.PENDING.value)
+    covid_stmt   = select(func.count()).select_from(sub).filter(sub.c.result == schemas.StatusEnum.COVID.value)
+    h5n1_stmt    = select(func.count()).select_from(sub).filter(sub.c.result == schemas.StatusEnum.H5N1.value)
+    healthy_stmt = select(func.count()).select_from(sub).filter(sub.c.result == schemas.StatusEnum.HEALTHY.value)
+    failed_stmt  = select(func.count()).select_from(sub).filter(sub.c.result == schemas.StatusEnum.FAILED.value)
+    urgent_stmt  = select(func.count()).select_from(sub).filter(sub.c.urgent == True)
 
     # run all counts concurrently
     pending = (await db.execute(pending_stmt)).scalar()
@@ -91,7 +93,7 @@ async def get_summary_results(db: AsyncSession, required: str):
     healthy = (await db.execute(healthy_stmt)).scalar()
     failed  = (await db.execute(failed_stmt)).scalar()
     urgent  = (await db.execute(urgent_stmt)).scalar()
-    requested_time = datetime.now(timezone.utc).isoformat(timespec='seconds').replace("+00:00", "Z")
+    requested_time = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     result = schemas.ResultSummary(lab_id=required, 
                                    pending=pending,
                                    covid=covid,

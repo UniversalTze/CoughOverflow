@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 docker compose up --build -d
 HEALTH_URL="http://localhost:8080/api/v1/health"
