@@ -67,3 +67,6 @@ labs.csv
 
 # Test images
 test-images/*
+
+# launch
+launch.sh
