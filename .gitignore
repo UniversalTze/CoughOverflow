@@ -70,3 +70,6 @@ test-images/*
 
 # launch
 launch.sh
+
+# remove
+remove.sh

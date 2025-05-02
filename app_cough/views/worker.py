@@ -8,15 +8,14 @@ from app_cough.models import dbmodels
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
 def worker_image(input: str, output: str, request:str, tmp_loc: str):
     # SQLALCHEMY_DATABASE_URL = "postgresql://cough_user:superSecretPassword.23@database:5432/cough"
-    WORKER_URI = "postgresql://cough_user:superSecretPassword.23@database:5432/cough"
-    """
-    (Won't need this stuff anymore later on)
-    SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-    if not SQLALCHEMY_DATABASE_URI:
+    # WORKER_URI = "postgresql://cough_user:superSecretPassword.23@database:5432/cough"
+    
+    # (Won't need this stuff anymore later on)
+    SQLALCHEMY_DATABASE_URI_VAL = os.getenv("SQLALCHEMY_SYNC_DATABASE_URI")
+    if not SQLALCHEMY_DATABASE_URI_VAL:
         raise RuntimeError("SQLALCHEMY_DATABASE_URI is not set in environment...")
-    """
 
-    engine = create_engine(WORKER_URI)
+    engine = create_engine(SQLALCHEMY_DATABASE_URI_VAL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
     
