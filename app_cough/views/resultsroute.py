@@ -6,6 +6,8 @@ from app_cough.models import schemas, crud, dbmodels, database, get_db
 from datetime import datetime
 from app_cough import utils
 
+import asyncio # @TODO delete this
+
 LOWEST_LIMIT = 0
 DEFAULT_LIMIT = 100
 HIGHEST_LIMIT = 1000
@@ -226,6 +228,7 @@ async def get_result_summary(lab_id: str, start: str = Query(None, description="
         else:
             end = datetime.fromisoformat(end)
     # everything is valid, begin processing request
+    await asyncio.sleep(2) # @TODO delete this
     data = await crud.get_summary_results(db, lab_id)
     return JSONResponse(status_code=200, 
                             content=data.dict())
