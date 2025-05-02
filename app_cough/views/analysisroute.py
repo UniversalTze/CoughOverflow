@@ -104,12 +104,11 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
         f.write(decoded_img)
     
     # add to s3 bucket
-    """
+    
     s3 = boto3.client('s3')
     bucket_name = "coughoverflow-s3-23182020"
     s3_key = f"images/{id_req}.jpg"
     s3.upload_file(input_path, bucket_name, s3_key)
-    """
 
     # Need to fork a process
     process = multiprocessing.Process(target=worker.worker_image, args=(input_path, output, id_req, tmp_dir))
