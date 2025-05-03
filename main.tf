@@ -44,6 +44,7 @@ data "aws_iam_role" "lab" {
 # Resource
 locals {
   image = docker_image.coughoverflow.name
+  engine_image = docker_image.coughoverflow-engine.name
   database_username = "cough_user" 
   database_password = "superSecretPassword.23"  # Bad to hardcode password in prod
 } 
@@ -337,5 +338,6 @@ resource "local_file" "url" {
     # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
+
 
 

@@ -4,6 +4,16 @@ FROM ubuntu:24.04
 # RUN apt-get update && apt-get install -y wget steghide && rm -rf /var/lib/apt/lists/*
 RUN apt-get update && apt-get install -y wget python3.12 pipx steghide && rm -rf /var/lib/apt/lists/*
 
+# Install pipx and poetry
+RUN pipx ensurepath && \
+    pipx install poetry
+
+# Install poetry dependencies (just need boto3 + celery, but just lazy in this case)
+COPY pyproject.toml ./
+
+# Temp pipx managed poetry instance that installs all dependencies into a persistent virtual env (/app/.venv/) due to above command
+RUN pipx run poetry install --no-root
+
 # Updated computer architecture selection of the OverflowEngine binary.
 # This appears to work on Windows, Macs, and EC2 AMD64 and ARM64 instances.
 RUN ARCH=$(dpkg --print-architecture) && \
@@ -13,3 +23,8 @@ RUN ARCH=$(dpkg --print-architecture) && \
         wget https://github.com/CSSE6400/CoughOverflow-Engine/releases/download/v1.0/overflowengine-arm64 -O overflowengine; \
     fi && \
     chmod +x overflowengine
+
+WORKDIR /engg
+COPY worker/ .
+
+CMD ["pipx", "run", "poetry", "run", "python3.12", "work.py"]
