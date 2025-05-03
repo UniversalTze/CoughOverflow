@@ -1,8 +1,6 @@
 import subprocess, os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from app_cough.models.database import get_db
 from app_cough.models import dbmodels
 
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}

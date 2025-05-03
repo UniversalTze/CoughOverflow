@@ -1,5 +1,4 @@
-import psycopg2
-import logging
+import logging, boto3, watchtower, uuid
 import urllib.request # Downloading CSV file 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -12,10 +11,65 @@ from sqlalchemy import select
 # uvicorn app_cough.main:app --port 6400
 app = FastAPI()
 
-# Set up logging (next time do it in a module)
+# Set up logging (next time do it in a module) Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+handler = watchtower.CloudWatchLogHandler(   # Configures watchtower to log to AWS CloudWatch. (currently not working rn)
+           log_group_name="coughoverflow-test",
+           boto3_client=boto3.client("logs", region_name="us-east-1")
+   )
+
+
+# Custom request logger formatter
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        # Custom log structure to include request-related info
+        record.msg = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "request_id": record.request_id,  # Custom request_id
+            "method": record.method,  # HTTP method
+            "url": record.url,  # Request URL
+            "status_code": record.status_code,  # HTTP Status
+        }
+        return super().format(record)
+
+
+# Set up the requests logger
+requests_logger = logging.getLogger("requests")
+requests_logger.setLevel(logging.INFO)
+requests_logger.addHandler(handler)
+# handler.setFormatter(RequestFormatter())
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = str(uuid.uuid4())  # Generate a unique request ID
+    method = request.method
+    url = str(request.url)
+    
+    # Log request start
+    requests_logger.info("Request Started", extra={
+        "request_id": request_id,
+        "method": method,
+        "url": url
+    })
+    requests_logger.info(request_id)
+    
+    response = await call_next(request)
+    
+    # Log request end
+    requests_logger.info("Request Finished", extra={
+        "request_id": request_id,
+        "method": method,
+        "url": url,
+        "status_code": response.status_code
+    })
+    
+    return response
+################################# Logging
 @app.exception_handler(Exception)
 def generic_exception_handler(request: Request, exc: Exception):
     # Log the error with details
