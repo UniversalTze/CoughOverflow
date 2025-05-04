@@ -24,7 +24,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi && \
     chmod +x overflowengine
 
-WORKDIR /engg
-COPY worker/ .
+WORKDIR /engine
+COPY worker worker
 
-CMD ["pipx", "run", "poetry", "run", "python3.12", "work.py"]
+CMD ["pipx", "run", "poetry", "run", "celery", "--app", "worker.work:celery", "worker", "--loglevel=info"]

@@ -1,14 +1,29 @@
-import boto3
-import celery
-import fastapi
+import boto3, os, watchtower, logging
+from celery import Celery
+from celery.signals import worker_ready
+ 
+# Basic Python logging setup
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
-def main():
-    # Check installed version
-    print(boto3.__version__)
-    print(celery.__version__)
-    print(fastapi.__version__)
+celery = Celery("cough-analysis")
+celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
+# celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
+celery.conf.task_default_queue = "cough-worker"
 
-    print("Hello from work.py inside the Docker container!")
+# Create CloudWatch log handler
+cloudwatch_handler = watchtower.CloudWatchLogHandler(
+    log_group_name='/coughoverflowengine/coughlogs',  # Same as awslogs-group in ECS config
+    boto3_client=boto3.client("logs", region_name="us-east-1"),
+)
 
-if __name__ == "__main__":
-    main()
+cloudwatch_handler.setLevel(logging.INFO)
+logger.addHandler(cloudwatch_handler)
+
+celery_logger = logging.getLogger("celery")
+celery_logger.addHandler(cloudwatch_handler)
+
+
+@worker_ready.connect
+def at_startup(sender, **kwargs): 
+    celery_logger.info("Celery worker is ready to perform actions.")

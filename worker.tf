@@ -35,7 +35,13 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
     "image": "${local.engine_image}",
     "cpu": 1024,
     "memory": 2048,
-    "name": "coughoverflow-engine", 
+    "name": "coughoverflow-engine",
+    "environment": [
+      {
+      "name": "CELERY_BROKER_URL",
+      "value": "sqs://"
+      }
+    ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
       "options": { 
