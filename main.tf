@@ -173,6 +173,10 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
       {
       "name": "SQLALCHEMY_SYNC_DATABASE_URI",
       "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}"
+      },
+      {
+      "name": "CELERY_BROKER_URL",
+      "value": "sqs://"
       }
     ],
     "logConfiguration": { 
@@ -202,7 +206,11 @@ resource "aws_ecs_service" "coughoverflow" {
     assign_public_ip = true 
    }
    
-   depends_on = [ aws_db_instance.coughoverflow_database ]
+   depends_on = [ aws_db_instance.coughoverflow_database, 
+                  aws_sqs_queue.worker_queue_normal, 
+                  aws_sqs_queue.worker_queue_urgent, 
+                  aws_s3_bucket.coughoverlow_S3_bucket_123,
+                  aws_ecs_service.coughoverflow-engine ]
 
    load_balancer { 
     target_group_arn = aws_lb_target_group.coughoverflow.arn
@@ -338,6 +346,3 @@ resource "local_file" "url" {
     # "http://my-url/"  # Replace this string with a URL from your Terraform.
     filename = "./api.txt"
 }
-
-
-
