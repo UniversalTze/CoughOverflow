@@ -27,6 +27,7 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 # Celery queue
 celery_app = Celery("cough-analysis")
 celery_app.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
+celery_app.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
 celery_app.conf.task_queues = [
     Queue("cough-worker-normal"),
     Queue("cough-worker-urgent") 

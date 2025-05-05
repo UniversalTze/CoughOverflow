@@ -41,6 +41,10 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       "name": "CELERY_BROKER_URL",
       "value": "sqs://"
       },
+      {
+      "name": "CELERY_RESULT_BACKEND",
+      "value": "db+postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}"
+      },
       { 
        "name": "SQLALCHEMY_DATABASE_URI", 
        "value": "postgresql+asyncpg://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}" 

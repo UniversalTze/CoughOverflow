@@ -9,12 +9,14 @@ logger.setLevel(logging.INFO)
 
 celery = Celery("cough-analysis")
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
+celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
 celery.conf.task_queues = [
     Queue("cough-worker-normal"),
     Queue("cough-worker-urgent") 
 ]
 celery.conf.task_default_queue = "cough-worker-normal"
 # celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
+celery.conf.task_track_started = True
 
 # Create CloudWatch log handler
 cloudwatch_handler = watchtower.CloudWatchLogHandler(
