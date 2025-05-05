@@ -1,74 +1,38 @@
-import logging, boto3, watchtower, uuid
+import logging, boto3, watchtower, uuid, os
 import urllib.request # Downloading CSV file 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
+from app_cough import send_startup_message
 from .models import engine, seed_labs, dbmodels, AsyncSessionLocal, schemas
 from pathlib import Path
 from sqlalchemy import select
+from celery import Celery
+from kombu import Queue
 
 #Command to start app, might need to SH.
 # uvicorn app_cough.main:app --port 6400
 app = FastAPI()
 
 # Set up logging (next time do it in a module) Logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 handler = watchtower.CloudWatchLogHandler(   # Configures watchtower to log to AWS CloudWatch. (currently not working rn)
-           log_group_name="coughoverflow-test",
-           boto3_client=boto3.client("logs", region_name="us-east-1")
-   )
+        log_group_name="coughoverflow-test",
+        boto3_client=boto3.client("logs", region_name="us-east-1")
+)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("sqlalchemy.engine").addHandler(handler) #check if this is or a log stream for sql alchemy engine
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
+# Celery queue
+celery_app = Celery("cough-analysis")
+celery_app.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
+celery_app.conf.task_queues = [
+    Queue("cough-worker-normal"),
+    Queue("cough-worker-urgent") 
+]
+celery_app.conf.task_default_queue = "cough-worker-normal"
 
-# Custom request logger formatter
-class RequestFormatter(logging.Formatter):
-    def format(self, record):
-        # Custom log structure to include request-related info
-        record.msg = {
-            "timestamp": self.formatTime(record, self.datefmt),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "request_id": record.request_id,  # Custom request_id
-            "method": record.method,  # HTTP method
-            "url": record.url,  # Request URL
-            "status_code": record.status_code,  # HTTP Status
-        }
-        return super().format(record)
-
-
-# Set up the requests logger
-requests_logger = logging.getLogger("requests")
-requests_logger.setLevel(logging.INFO)
-requests_logger.addHandler(handler)
-# handler.setFormatter(RequestFormatter())
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    request_id = str(uuid.uuid4())  # Generate a unique request ID
-    method = request.method
-    url = str(request.url)
-    
-    # Log request start
-    requests_logger.info("Request Started", extra={
-        "request_id": request_id,
-        "method": method,
-        "url": url
-    })
-    requests_logger.info(request_id)
-    
-    response = await call_next(request)
-    
-    # Log request end
-    requests_logger.info("Request Finished", extra={
-        "request_id": request_id,
-        "method": method,
-        "url": url,
-        "status_code": response.status_code
-    })
-    
-    return response
 ################################# Logging
 @app.exception_handler(Exception)
 def generic_exception_handler(request: Request, exc: Exception):
@@ -87,6 +51,18 @@ def generic_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def on_startup():
+    # Send a message to the queue
+    logger.info("sending message to queue normal")
+    send_startup_message.apply_async(
+        args=["Startup_complete_normal"], 
+        queue="cough-worker-normal"
+    )
+    logger.info("Sending message to urgent queue")
+    send_startup_message.apply_async(
+        args=["Startup_complete_urgent"], 
+        queue="cough-worker-urgent"
+    )
+
     async with engine.begin() as conn:
         await conn.run_sync(dbmodels.Base.metadata.create_all)
     

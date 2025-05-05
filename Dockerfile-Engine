@@ -25,6 +25,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
     chmod +x overflowengine
 
 WORKDIR /engine
-COPY worker worker
+COPY app_cough app_cough
 
-CMD ["pipx", "run", "poetry", "run", "celery", "--app", "worker.work:celery", "worker", "--loglevel=info"]
+CMD ["pipx", "run", "poetry", "run", "celery", "--app", "app_cough.tasks.analysis:celery", "worker", "--loglevel=info"]
