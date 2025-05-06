@@ -15,10 +15,10 @@ WORKDIR /app
 COPY pyproject.toml ./
 
 # Create virual env inside project directory /app/.venv (instead of default global cache)
-RUN poetry config virtualenvs.in-project true
+RUN pipx run poetry config virtualenvs.in-project true
 
 # Temp pipx managed poetry instance that installs all dependencies into a persistent virtual env (/app/.venv/) due to above command
-RUN poetry install --no-root
+RUN pipx run poetry install --no-root
 
 # Copy the application code
 COPY app_cough app_cough
