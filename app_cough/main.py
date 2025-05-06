@@ -23,6 +23,9 @@ handler = watchtower.CloudWatchLogHandler(   # Configures watchtower to log to A
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("sqlalchemy.engine").addHandler(handler) #check if this is or a log stream for sql alchemy engine
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+request_logs = logging.getLogger("app.requests")
+request_logs.addHandler(handler)
+request_logs.setLevel(level=logging.INFO)
 
 # Celery queue
 celery_app = Celery("cough-analysis")

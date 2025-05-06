@@ -1,5 +1,4 @@
-import boto3, asyncio
-import base64, uuid, tempfile, multiprocessing, os
+import boto3, base64, uuid, tempfile, logging
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -13,6 +12,7 @@ MIN_KB = 4 * 1000
 MAX_KB = 150 * 1000
 
 analysisrouter = APIRouter()
+request_logs = logging.getLogger("app.requests")
 
 @analysisrouter.post('/analysis', response_model= Union[schemas.AnalysisPost, schemas.AnalysisPostError])
 async def create_analysis(patient_id: str = Query(None, description="patient_id"), 
@@ -21,6 +21,7 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
                     body: dict = Body(None), 
                     db: AsyncSession = Depends(get_db), 
                     request: Request= None): 
+    request_logs.info(f"Begin Post request at {utils.get_time()}")
     req_body = {"image"}
     if (body is None):
         error = utils.create_error(schemas.ErrorTypeEnum.no_image)
@@ -93,7 +94,7 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
     )
     # get the nessary stuff from request before closing connection for fork()
     await db.close()
-
+    request_logs.info(f"{id_req} passed all tests, publish to db")
     # create a temp directory to store these results. 
     tmp_dir = tempfile.gettempdir()
     input_path = f"{tmp_dir}/{id_req}.jpg"
@@ -103,7 +104,7 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
         f.write(decoded_img)
     
     # add to s3 bucket
-    
+    request_logs.info(f"Adding {id_req} .jpg to a bucket")
     s3 = boto3.client('s3')
     bucket_name = "coughoverflow-s3-23182020"
     s3_key = f"{id_req}.jpg"
@@ -111,13 +112,14 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
 
     from app_cough.tasks import analysis 
     analysis.analyse_image.apply_async(args=[id_req], queue="cough-worker-normal")
-
+    request_logs.info(f"Finish Post request for {id_req} at {utils.get_time()}")
     return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
 async def get_request(request_id: str = Query(None, description="request_id"), 
                       db: AsyncSession = Depends(get_db), 
                       request: Request= None):
+    request_logs.info(f"Begin Get request at {utils.get_time()}")
     query = {"request_id"}
     query_params = request.query_params 
     if (query_params and not utils.validate_query(query_params, query)):
@@ -144,6 +146,7 @@ async def get_request(request_id: str = Query(None, description="request_id"),
             created_at=result.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
             updated_at=result.updated_at.isoformat(timespec='seconds').replace('+00:00','Z'),
         )
+    request_logs.info(f"Finish get request at {utils.get_time()}")
     return JSONResponse(status_code=200, 
                                 content=info.dict())
     
@@ -151,6 +154,7 @@ async def get_request(request_id: str = Query(None, description="request_id"),
 async def update_request(request_id: str = Query(None, description="request_id"), 
                    lab_id: str = Query(None, description="lab_id"), 
                    db: AsyncSession = Depends(get_db), request: Request= None): 
+    request_logs.info(f"Begin Put request at {utils.get_time()}")
     query = {"request_id", "lab_id"}
     query_params = request.query_params
     if (query_params and not utils.validate_query(given=query_params, required=query)):
@@ -186,4 +190,5 @@ async def update_request(request_id: str = Query(None, description="request_id")
                 urgent=req.urgent,
                 created_at=req.created_at.isoformat(timespec='seconds').replace('+00:00','Z'),
                 updated_at=req.updated_at.isoformat(timespec='seconds').replace('+00:00','Z'))
+    request_logs.info(f"Finish Put request at {utils.get_time()}")
     return JSONResponse(status_code=200, content=info.dict())

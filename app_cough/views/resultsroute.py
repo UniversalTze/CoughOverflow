@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query
@@ -14,6 +15,7 @@ HIGHEST_LIMIT = 1000
 DEFAULT_OFFSET = 0
 
 resultRouter = APIRouter()
+request_logs = logging.getLogger("app.requests")
 
 @resultRouter.get('/patients/results') #response_model = schemas.ResultPatient)
 async def get_patient_results(patient_id: str = Query(None, description="patient_id"),
@@ -24,6 +26,7 @@ async def get_patient_results(patient_id: str = Query(None, description="patient
                         db:AsyncSession = Depends(get_db), 
                         request: Request= None):
     # check params given to ensure no duplicates and additional params provided
+    request_logs.info(f"Begin get request for patient results at {utils.get_time()}")
     query = {"patient_id", "start", "end", "status", "urgent"}
     params = request.query_params
     if (params and not utils.validate_query(params, query)):
@@ -93,6 +96,8 @@ async def get_patient_results(patient_id: str = Query(None, description="patient
             updated_at=obj.updated_at.isoformat(timespec='seconds').replace('+00:00','Z')
         )
         result.append(analysis.dict())
+    
+    request_logs.info(f"End of get request for patient results at {utils.get_time()}")
     return JSONResponse(status_code=200, 
                             content = { 
                                 "result": result
@@ -110,6 +115,7 @@ async def get_lab_results(lab_id: str,
                     db:AsyncSession = Depends(get_db),
                     request: Request = None):
     #check lab id (required) found in path
+    request_logs.info(f"Begin get request for lab results at {utils.get_time()}")
     if lab_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
@@ -183,6 +189,7 @@ async def get_lab_results(lab_id: str,
             updated_at=obj.updated_at.isoformat(timespec='seconds').replace('+00:00','Z')
         )
         result.append(analysis.dict())
+    request_logs.info(f"End of get request for lab results at {utils.get_time()}")
     return JSONResponse(status_code=200, 
                         content = { 
                             "result": result
@@ -193,6 +200,7 @@ async def get_result_summary(lab_id: str, start: str = Query(None, description="
                        end: str = Query(None, description="end"), 
                        db:AsyncSession = Depends(get_db), request: Request = None):
     # required params (check id)
+    request_logs.info(f"Begin get request for lab summary at {utils.get_time()}")
     if lab_id is None:
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
@@ -228,8 +236,9 @@ async def get_result_summary(lab_id: str, start: str = Query(None, description="
         else:
             end = datetime.fromisoformat(end)
     # everything is valid, begin processing request
-    await asyncio.sleep(2) # @TODO delete this
+    await asyncio.sleep(3) # @TODO delete this
     data = await crud.get_summary_results(db, lab_id)
+    request_logs.info(f"End of get request for lab summary at {utils.get_time()}")
     return JSONResponse(status_code=200, 
                             content=data.dict())
 

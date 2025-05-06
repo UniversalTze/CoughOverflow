@@ -305,13 +305,30 @@ resource "aws_lb_listener" "coughoverflow" {
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (api for different services)
-  max_capacity        = 4 
+  max_capacity        = 3
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 
   service_namespace   = "ecs" 
  
   depends_on = [ aws_ecs_service.coughoverflow ] 
+}
+
+resource "aws_appautoscaling_policy" "coughoverflow-cpu" { 
+  name                = "coughoverflow-cpu" 
+  policy_type         = "TargetTrackingScaling" 
+  resource_id         = aws_appautoscaling_target.coughoverflow.resource_id 
+  scalable_dimension  = aws_appautoscaling_target.coughoverflow.scalable_dimension 
+  service_namespace   = aws_appautoscaling_target.coughoverflow.service_namespace 
+ 
+  target_tracking_scaling_policy_configuration { 
+    predefined_metric_specification { 
+      predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
+    } 
+    target_value              = 50    # CPU value %
+    scale_in_cooldown         = 90
+    scale_out_cooldown        = 45 
+  } 
 }
 
 ########################### S3 Bucket

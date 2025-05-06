@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from starlette.datastructures import QueryParams
 from app_cough.models import schemas, crud, get_db
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 LENGTH_PATIENT_ID = 11
 
@@ -58,3 +59,6 @@ def determine_status(status: str):
     for enums in schemas.StatusEnum:
         if enums.value == status: 
             return enums
+        
+def get_time():
+    return datetime.now(timezone.utc).isoformat()

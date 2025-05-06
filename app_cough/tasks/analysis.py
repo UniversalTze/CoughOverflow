@@ -1,4 +1,5 @@
 import boto3, os, watchtower, logging, tempfile, os
+from datetime import datetime, timezone
 from celery import Celery
 from celery.signals import worker_ready
 from kombu import Queue
@@ -56,7 +57,8 @@ def send_startup_message(msg):
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
 @celery.task(name="do_analysis")
 def analyse_image(msg):
-    celery_logger.info("Begining analysis")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Begining analysis at {time}")
     
     celery_logger.info(f"Downloading {msg} from bucket")
     s3 = boto3.client('s3')
@@ -87,7 +89,8 @@ def analyse_image(msg):
             message = f.read().strip()
 
         message = RETURN_FROM_ENGINE.get(message, "failed")
-    celery_logger.info(f"Updating db with {message}")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Updating db with {message} at {time}")
     req = db.query(dbmodels.Request).filter(dbmodels.Request.request_id == msg).first()
     req.result = message
     db.commit()
