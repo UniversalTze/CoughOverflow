@@ -8,11 +8,18 @@ RUN apt-get update && apt-get install -y wget python3.12 pipx steghide && rm -rf
 RUN pipx ensurepath && \
     pipx install poetry
 
+# WORKDIR is /engine so storing overflowengine can be triggered by ./overflowengine 
+# Running it from a file in app_cough does not matter as engine is current working directory
+WORKDIR /engine
+
 # Install poetry dependencies (just need boto3 + celery, but just lazy in this case)
 COPY pyproject.toml ./
 
 # Temp pipx managed poetry instance that installs all dependencies into a persistent virtual env (/app/.venv/) due to above command
 RUN pipx run poetry install --no-root
+
+# Copy app that contains engine across
+COPY app_cough app_cough
 
 # Updated computer architecture selection of the OverflowEngine binary.
 # This appears to work on Windows, Macs, and EC2 AMD64 and ARM64 instances.
@@ -23,8 +30,5 @@ RUN ARCH=$(dpkg --print-architecture) && \
         wget https://github.com/CSSE6400/CoughOverflow-Engine/releases/download/v1.0/overflowengine-arm64 -O overflowengine; \
     fi && \
     chmod +x overflowengine
-
-WORKDIR /engine
-COPY app_cough app_cough
 
 CMD ["pipx", "run", "poetry", "run", "celery", "--app", "app_cough.tasks.analysis:celery", "worker", "--loglevel=info"]

@@ -1,4 +1,4 @@
-import boto3
+import boto3, asyncio
 import base64, uuid, tempfile, multiprocessing, os
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
@@ -8,7 +8,6 @@ from sqlalchemy.future import select
 from app_cough.models import schemas, crud, dbmodels, database, get_db
 from typing import Union
 from app_cough import utils
-from app_cough.views import worker
 
 MIN_KB = 4 * 1000
 MAX_KB = 150 * 1000
@@ -98,7 +97,7 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
     # create a temp directory to store these results. 
     tmp_dir = tempfile.gettempdir()
     input_path = f"{tmp_dir}/{id_req}.jpg"
-    output = f"{tmp_dir}/{id_req}.txt"
+    output = f"{tmp_dir}/{id_req}.txt" # Will delete this
     # write decoded image to .jpeg file
     with open(input_path, "wb") as f:
         f.write(decoded_img)
@@ -107,12 +106,12 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
     
     s3 = boto3.client('s3')
     bucket_name = "coughoverflow-s3-23182020"
-    s3_key = f"images/{id_req}.jpg"
-    s3.upload_file(input_path, bucket_name, s3_key)
+    s3_key = f"{id_req}.jpg"
+    s3.upload_file(input_path, bucket_name, s3_key) #synchronous call
 
-    # Need to fork a process
-    process = multiprocessing.Process(target=worker.worker_image, args=(input_path, output, id_req, tmp_dir))
-    process.start()
+    from app_cough.tasks import analysis 
+    analysis.analyse_image.apply_async(args=[id_req], queue="cough-worker-normal")
+
     return JSONResponse(status_code=201, content=message.dict())
 
 @analysisrouter.get('/analysis', response_model= schemas.Analysis) 
