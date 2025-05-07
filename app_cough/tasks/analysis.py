@@ -5,8 +5,9 @@ from celery.signals import worker_ready
 from kombu import Queue
 import subprocess, os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from app_cough.models import dbmodels
+from functools import lru_cache
  
 # Basic Python logging setup
 logger = logging.getLogger()
@@ -55,45 +56,86 @@ def send_startup_message(msg):
 
 
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
-@celery.task(name="do_analysis")
+@celery.task(name="do_analysis_normal")
 def analyse_image(msg):
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Begining analysis at {time}")
+    celery_logger.info(f"Begining analysis at {time} for normal analysis")
     
-    celery_logger.info(f"Downloading {msg} from bucket")
-    s3 = boto3.client('s3')
-    bucket_name = "coughoverflow-s3-23182020"
-    file_name = f"{msg}.jpg"
+    saved_img = download_image_S3(msg) # Download image
     tmp_dir = tempfile.gettempdir()
-    save_path = f"{tmp_dir}/{msg}.jpg"
-    s3.download_file(bucket_name, file_name, save_path)
 
     # DB connection
-    celery_logger.info("Establishind Sync DB Connection")
-    SQLALCHEMY_DATABASE_URI_VAL = os.getenv("SQLALCHEMY_SYNC_DATABASE_URI")
-    if not SQLALCHEMY_DATABASE_URI_VAL:
-        raise RuntimeError("SQLALCHEMY_DATABASE_URI is not set in environment...")
-
-    engine = create_engine(SQLALCHEMY_DATABASE_URI_VAL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
+    celery_logger.info("Establishind Sync DB Connection for normal analysis")
+    db = connect_db()
 
     output = f"{tmp_dir}/{msg}.txt" # output result file
-    celery_logger.info("Running engine now")
-    result = subprocess.run(["./overflowengine", "--input", save_path, "--output", output], capture_output=True)
+    celery_logger.info("Running engine now for normal analysis")
+    result = run_engine(input_path=saved_img, output_path=output)
 
-    if (result.returncode != 0): 
-        message = "failed"
-    else: 
-        with open(output, "r") as f: 
-            message = f.read().strip()
-
-        message = RETURN_FROM_ENGINE.get(message, "failed")
+    message = RETURN_FROM_ENGINE.get(result, "failed")
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Updating db with {message} at {time}")
-    req = db.query(dbmodels.Request).filter(dbmodels.Request.request_id == msg).first()
-    req.result = message
+    celery_logger.info(f"Updating db with {message} at {time} for normal analysis")
+    update_db(message, msg, db)
+    celery_logger.info("Analysis completed for normal")
+
+@celery.task(name="do_analysis_urgent")
+def analyse_image_urgent(msg):
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Begining analysis at {time} for urgent queue")
+    
+    saved_img = download_image_S3(msg) # Download image
+    tmp_dir = tempfile.gettempdir()
+
+    # DB connection
+    celery_logger.info("Establishind Sync DB Connection for urgent queue")
+    db = connect_db()
+
+    output = f"{tmp_dir}/{msg}.txt" # output result file
+    celery_logger.info("Running engine now for urgent queue")
+    result = run_engine(input_path=saved_img, output_path=output)
+
+    message = RETURN_FROM_ENGINE.get(result, "failed")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Updating db with {message} at {time} for urgent queue")
+    update_db(message, msg, db)
+    celery_logger.info("Analysis completed for urgent queue")
+
+def download_image_S3(id: str) -> str:
+    celery_logger.info(f"Downloading {id} from bucket")
+    s3 = boto3.client('s3')
+    bucket_name = "coughoverflow-s3-23182020"
+    file_name = f"{id}.jpg"
+    tmp_dir = tempfile.gettempdir()
+    save_path = f"{tmp_dir}/{id}.jpg"
+    s3.download_file(bucket_name, file_name, save_path)
+
+    return save_path
+
+def connect_db() -> Session:
+    engine = get_engine()
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+    return db
+
+@lru_cache(maxsize=1)
+def get_engine():
+    uri = os.getenv("SQLALCHEMY_SYNC_DATABASE_URI")
+    if not uri:
+        raise RuntimeError("SQLALCHEMY_DATABASE_URI is not set")
+    return create_engine(uri)
+
+def run_engine(input_path, output_path) -> str:
+    celery_logger.info("Running engine")
+    result = subprocess.run(["./overflowengine", "--input", input_path, "--output", output_path], capture_output=True)
+    if result.returncode != 0:
+        return "failed"
+    with open(output_path, "r") as f: #File closes after block
+        message = f.read().strip()
+        return message
+    
+def update_db(res: str, req_id: str, db: Session):
+    req = db.query(dbmodels.Request).filter(dbmodels.Request.request_id == req_id).first()
+    req.result = res
     db.commit()
     db.refresh(req)
     db.close()
-    celery_logger.info("Analysis completed")

@@ -31,4 +31,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
     fi && \
     chmod +x overflowengine
 
-CMD ["pipx", "run", "poetry", "run", "celery", "--app", "app_cough.tasks.analysis:celery", "worker", "--loglevel=info"]
+COPY worker.sh /engine/worker.sh
+RUN chmod +x /engine/worker.sh
+ENTRYPOINT [ "/engine/worker.sh" ]
+# CMD ["pipx", "run", "poetry", "run", "celery", "--app", "app_cough.tasks.analysis:celery", "worker", "--loglevel=info"]
