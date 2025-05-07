@@ -1,12 +1,10 @@
-import logging, boto3, watchtower, uuid, os
+import logging, boto3, watchtower, os
 import urllib.request # Downloading CSV file 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
-from app_cough import send_startup_message
-from .models import engine, seed_labs, dbmodels, AsyncSessionLocal, schemas
-from pathlib import Path
-from sqlalchemy import select
+from app_cough import send_startup_message, utils
+from .models import engine, dbmodels, schemas
 from celery import Celery
 from kombu import Queue
 
@@ -71,15 +69,8 @@ async def on_startup():
         await conn.run_sync(dbmodels.Base.metadata.create_all)
     
     path, _ =  urllib.request.urlretrieve("https://csse6400.uqcloud.net/resources/labs.csv", "./app_cough/labs.csv")
-
-    async with AsyncSessionLocal() as db:
-        res = await db.execute(select(dbmodels.Labs))
-        labs_in_db = res.scalars().first()
-
-        if labs_in_db is None: # valid labs has not been added yet
-            base_dir = Path(__file__).resolve().parent  # Directory of main.py
-            file_path = str(base_dir / "labs.csv")
-            await seed_labs(file_path, db=db)
+    utils.load_valid_labs(path)
+    logger.info(utils.get_valid_labs())
     
 app.include_router(healthrouter, prefix="/api/v1")
 app.include_router(labrouter, prefix="/api/v1")
