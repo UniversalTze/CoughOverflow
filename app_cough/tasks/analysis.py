@@ -59,46 +59,53 @@ RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
 @celery.task(name="do_analysis_normal")
 def analyse_image(msg):
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Begining analysis at {time} for normal analysis")
+    celery_logger.info(f"Begining analysis at {time} for normal analysis for {msg}")
     
     saved_img = download_image_S3(msg) # Download image
     tmp_dir = tempfile.gettempdir()
 
     # DB connection
-    celery_logger.info("Establishind Sync DB Connection for normal analysis")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Establishind Sync DB Connection for normal analysis for {msg} at {time}")
     db = connect_db()
 
     output = f"{tmp_dir}/{msg}.txt" # output result file
-    celery_logger.info("Running engine now for normal analysis")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Running engine now for normal analysis at {time}")
     result = run_engine(input_path=saved_img, output_path=output)
 
     message = RETURN_FROM_ENGINE.get(result, "failed")
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Updating db with {message} at {time} for normal analysis")
+    celery_logger.info(f"Updating db with {message} at {time} for normal analysis for {msg}")
     update_db(message, msg, db)
-    celery_logger.info("Analysis completed for normal")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Analysis completed {msg} for normal {msg} at {time}")
+
 
 @celery.task(name="do_analysis_urgent")
 def analyse_image_urgent(msg):
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Begining analysis at {time} for urgent queue")
+    celery_logger.info(f"Begining analysis at {time} for urgent queue for {msg}")
     
     saved_img = download_image_S3(msg) # Download image
     tmp_dir = tempfile.gettempdir()
 
     # DB connection
-    celery_logger.info("Establishind Sync DB Connection for urgent queue")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Establishind Sync DB Connection for urgent queue for {msg} at {time}")
     db = connect_db()
 
     output = f"{tmp_dir}/{msg}.txt" # output result file
-    celery_logger.info("Running engine now for urgent queue")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Running engine now for urgent queue for {msg} at {time}")
     result = run_engine(input_path=saved_img, output_path=output)
 
     message = RETURN_FROM_ENGINE.get(result, "failed")
     time = datetime.now(timezone.utc).isoformat()
-    celery_logger.info(f"Updating db with {message} at {time} for urgent queue")
+    celery_logger.info(f"Updating db with {message} at {time} for urgent queue for {msg}")
     update_db(message, msg, db)
-    celery_logger.info("Analysis completed for urgent queue")
+    time = datetime.now(timezone.utc).isoformat()
+    celery_logger.info(f"Analysis completed for urgent queue for {msg} at {time}")
 
 def download_image_S3(id: str) -> str:
     celery_logger.info(f"Downloading {id} from bucket")

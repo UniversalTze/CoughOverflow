@@ -73,3 +73,6 @@ launch.sh
 
 # remove
 remove.sh
+
+# Testing
+k6.js

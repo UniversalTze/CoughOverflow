@@ -29,6 +29,9 @@ async def get_health(db: Session = Depends(get_db)):
         return JSONResponse(status_code=503, content=response)
 
 async def check_db_health(db: Session):
-    res = await crud.get_single_lab(db)
-    return res is not None
-
+    try:
+        await db.execute("SELECT 1")
+        return True
+    except Exception as e:
+        # Log the error if needed
+        return False

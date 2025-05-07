@@ -54,7 +54,7 @@ resource "aws_db_instance" "coughoverflow_database" {
  max_allocated_storage = 1000  # MAX GB (scale up)
  engine = "postgres" 
  engine_version = "17" 
- instance_class = "db.t3.micro"    # small, low-cost instance
+ instance_class = "db.t3.medium"    # medium for our cases
  db_name = "cough" 
  username = local.database_username 
  password = local.database_password 
@@ -254,10 +254,10 @@ resource "aws_lb_target_group" "coughoverflow" {  # Used to send load to fargate
     path                = "/api/v1/health" 
     port                = "6400" 
     protocol            = "HTTP" 
-    healthy_threshold   = 2 
-    unhealthy_threshold = 2 
-    timeout             = 5 
-    interval            = 60
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
   } 
 }
 
@@ -325,7 +325,7 @@ resource "aws_appautoscaling_policy" "coughoverflow-cpu" {
     predefined_metric_specification { 
       predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
     } 
-    target_value              = 50    # CPU value %
+    target_value              = 30    # CPU value %
     scale_in_cooldown         = 60
     scale_out_cooldown        = 45 
   } 
