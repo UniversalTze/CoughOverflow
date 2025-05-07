@@ -2,9 +2,6 @@ from sqlalchemy import Column, String, Boolean, DateTime
 from .database import Base
 from datetime import datetime, timezone
 ## DATABASE model
-class Labs(Base):
-    __tablename__ = 'labs'
-    id = Column(String, primary_key=True)
 
 class Request(Base): 
     __tablename__ = 'requests'

@@ -76,3 +76,6 @@ remove.sh
 
 # Testing
 k6.js
+
+# Folder for testing
+load-test
