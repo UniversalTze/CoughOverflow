@@ -19,8 +19,8 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
    family = "coughoverflow-engine"
    network_mode = "awsvpc" 
    requires_compatibilities = ["FARGATE"] 
-   cpu = 1024 
-   memory = 2048 
+   cpu = 4096
+   memory = 8192
    execution_role_arn = data.aws_iam_role.lab.arn
    task_role_arn = data.aws_iam_role.lab.arn
    depends_on = [docker_registry_image.coughoverflow_push]
@@ -33,8 +33,8 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
    [ 
    { 
     "image": "${local.engine_image}",
-    "cpu": 1024,
-    "memory": 2048,
+    "cpu": 4096,
+    "memory": 8192,
     "name": "coughoverflow-engine",
     "environment": [
       {
@@ -52,7 +52,13 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       {
       "name": "SQLALCHEMY_SYNC_DATABASE_URI",
       "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}"
-      }
+      },
+      { "name": "NORMAL_QUEUE", "value": "cough-worker-normal.fifo"},
+      { "name": "NORMAL_QUEUE_MIN", "value": "1"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "4"},
+      { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
+      { "name": "URGENT_QUEUE_MIN", "value": "2"},
+      { "name": "URGENT_QUEUE_MAX", "value": "8"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
@@ -66,6 +72,34 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
    } 
  ]
    DEFINITION 
+}
+
+############################ Auto Scaling
+resource "aws_appautoscaling_target" "coughoverflow-engine" { #uses string literals (api for different services)
+  max_capacity        = 8
+  min_capacity        = 1 
+  resource_id         = "service/coughoverflow/coughoverflow-engine"  # resource_id = "service/<cluster_name>/<service_name>"
+  scalable_dimension  = "ecs:service:DesiredCount" 
+  service_namespace   = "ecs" 
+ 
+  depends_on = [ aws_ecs_service.coughoverflow ] 
+}
+
+resource "aws_appautoscaling_policy" "coughoverflow-engine-cpu" { 
+  name                = "coughoverflow-cpu" 
+  policy_type         = "TargetTrackingScaling" 
+  resource_id         = aws_appautoscaling_target.coughoverflow-engine.id 
+  scalable_dimension  = aws_appautoscaling_target.coughoverflow-engine.scalable_dimension 
+  service_namespace   = aws_appautoscaling_target.coughoverflow-engine.service_namespace
+ 
+  target_tracking_scaling_policy_configuration { 
+    predefined_metric_specification { 
+      predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
+    } 
+    target_value              = 70    # CPU value %
+    scale_in_cooldown         = 60
+    scale_out_cooldown        = 30 
+  } 
 }
 
 resource "aws_ecs_service" "coughoverflow-engine" { 
