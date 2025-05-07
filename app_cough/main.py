@@ -59,12 +59,12 @@ async def on_startup():
     logger.info("sending message to queue normal")
     send_startup_message.apply_async(
         args=["Startup_complete_normal"], 
-        queue="cough-worker-normal"
+        queue="cough-worker-normal.fifo"
     )
     logger.info("Sending message to urgent queue")
     send_startup_message.apply_async(
         args=["Startup_complete_urgent"], 
-        queue="cough-worker-urgent"
+        queue="cough-worker-urgent.fifo"
     )
 
     async with engine.begin() as conn:

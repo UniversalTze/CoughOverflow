@@ -109,9 +109,12 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
     bucket_name = "coughoverflow-s3-23182020"
     s3_key = f"{id_req}.jpg"
     s3.upload_file(input_path, bucket_name, s3_key) #synchronous call
-
+    
     from app_cough.tasks import analysis 
-    analysis.analyse_image.apply_async(args=[id_req], queue="cough-worker-normal")
+    if urgent is None or urgent == False: 
+        analysis.analyse_image.apply_async(args=[id_req], queue="cough-worker-normal.fifo")
+    else: 
+        analysis.analyse_image_urgent.apply_async(args=[id_req], queue="cough-worker-urgent.fifo")
     request_logs.info(f"Finish Post request for {id_req} at {utils.get_time()}")
     return JSONResponse(status_code=201, content=message.dict())
 

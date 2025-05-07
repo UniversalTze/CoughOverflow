@@ -133,8 +133,8 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
    family = "coughoverflow"
    network_mode = "awsvpc" 
    requires_compatibilities = ["FARGATE"] 
-   cpu = 1024 
-   memory = 2048 
+   cpu = 2048
+   memory = 4096
    execution_role_arn = data.aws_iam_role.lab.arn
    task_role_arn = data.aws_iam_role.lab.arn
    depends_on = [docker_registry_image.coughoverflow_push]
@@ -147,8 +147,8 @@ resource "aws_ecs_task_definition" "coughoverflow" {  #docker file exposes port 
    [ 
    { 
     "image": "${local.image}",
-    "cpu": 1024,
-    "memory": 2048,
+    "cpu": 2048,
+    "memory": 4096,
     "name": "coughoverflow", 
     "networkMode": "awsvpc", 
     "portMappings": [ 
@@ -326,7 +326,7 @@ resource "aws_appautoscaling_policy" "coughoverflow-cpu" {
       predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
     } 
     target_value              = 50    # CPU value %
-    scale_in_cooldown         = 90
+    scale_in_cooldown         = 60
     scale_out_cooldown        = 45 
   } 
 }
