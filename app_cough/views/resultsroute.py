@@ -236,7 +236,6 @@ async def get_result_summary(lab_id: str, start: str = Query(None, description="
         else:
             end = datetime.fromisoformat(end)
     # everything is valid, begin processing request
-    await asyncio.sleep(3) # @TODO delete this
     data = await crud.get_summary_results(db, lab_id)
     request_logs.info(f"End of get request for lab summary at {utils.get_time()}")
     return JSONResponse(status_code=200, 
