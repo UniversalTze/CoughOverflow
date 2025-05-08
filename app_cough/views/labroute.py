@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app_cough.models import schemas, crud, dbmodels, database, get_db
+from app_cough import utils
 
 labrouter = APIRouter()
 
@@ -15,6 +16,7 @@ async def get_labs(db:AsyncSession = Depends(get_db)):
 # Just a test
 @labrouter.get('/validlabs')
 async def get_labs(db:AsyncSession = Depends(get_db)):
-    result = await crud.get_valid_labs(db)
+    result = utils.get_valid_lab_set()
+    list_res = list(result)
     #  labs = [lab["id"] for lab in result]
-    return result
+    return list_res

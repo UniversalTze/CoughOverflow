@@ -14,14 +14,6 @@ LAB = "lab"
 LIMIT = "limit"
 OFFSET = "offset"
 
-async def get_single_lab(db: AsyncSession):
-    result = await db.execute(select(dbmodels.Labs).limit(1))
-    return result  # If this line runs, DB is alive
-    #return db.query(dbmodels.Labs).first()
-
-async def get_valid_labs(db: AsyncSession):
-    result = await db.execute(select(dbmodels.Labs.id))
-    return result.scalars().all()
 
 async def get_lab_ids(db: AsyncSession):
     #result = await db.execute(dbmodels.Request.lab_id).distinct().all()

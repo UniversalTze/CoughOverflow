@@ -28,6 +28,11 @@ ENV PATH="/app/.venv/bin:/root/.local/bin:/usr/bin:$PATH"
 
 ENV PYTHONPATH=/app
 
+COPY launchapp.sh /app/launchapp.sh
+
+RUN chmod +x /app/launchapp.sh
+
+ENTRYPOINT [ "/app/launchapp.sh" ]
 # Define the container's command to run the app, exposing port 6400
-CMD ["python3", "-m", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"]
-# CMD ["gunicorn", "app_cough.main:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:6400"]
+# CMD ["python3", "-m", "uvicorn", "app_cough.main:app", "--host", "0.0.0.0", "--port", "6400"]
+#CMD ["gunicorn", "app_cough.main:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:6400"]

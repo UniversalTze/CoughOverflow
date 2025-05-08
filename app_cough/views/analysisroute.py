@@ -52,7 +52,7 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
         error = utils.create_error(schemas.ErrorTypeEnum.missing_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
-    if (not await utils.is_valid_lab_id(lab_id, db)):
+    if (not utils.is_valid_lab_id(lab_id)):
         error = utils.create_error(schemas.ErrorTypeEnum.invalid_lab_id)
         return JSONResponse(status_code=400, 
                             content=error)
@@ -173,7 +173,7 @@ async def update_request(request_id: str = Query(None, description="request_id")
         return JSONResponse(status_code=400, 
                             content=error)
 
-    if (not await utils.is_valid_lab_id(lab_id, db)):
+    if (not utils.is_valid_lab_id(lab_id)):
         error = schemas.AnalysisUpdateError(detail="Invalid lab identifier.")
         return JSONResponse(status_code=400, 
                             content=error.dict())

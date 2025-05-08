@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 LENGTH_PATIENT_ID = 11
-
+VALID_SET = set()
 # only is_valid_lab_id needs to be async as it process data from async connection db. (Rest is just pure python logic)
 
 def validate_query(given: QueryParams, required: set):
@@ -39,10 +39,9 @@ def is_rfc3339(date_str: str) -> bool:
     except ValueError as e:
         return False
     
-async def is_valid_lab_id(lab_id: str, db:AsyncSession): # need to be async as accessing async db. 
-    labs = await crud.get_valid_labs(db) # list of all object items
-    ids = set(labs)
-    if (lab_id not in ids):
+def is_valid_lab_id(lab_id: str): 
+    labs = get_valid_lab_set()
+    if (lab_id not in labs):
         return False
     return True
 
@@ -62,3 +61,14 @@ def determine_status(status: str):
         
 def get_time():
     return datetime.now(timezone.utc).isoformat()
+
+def load_valid_lab_set(file_path): 
+     with open(file_path, 'r', encoding="utf-8-sig", newline='') as csvfile:
+        # Added encoding as csv had some buggy characters 
+        for line in csvfile:
+            # Process each line manually
+            labid = line.strip()
+            VALID_SET.add(labid)
+
+def get_valid_lab_set(): 
+    return VALID_SET
