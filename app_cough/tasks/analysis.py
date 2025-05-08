@@ -41,20 +41,6 @@ celery_logger.addHandler(cloudwatch_handler)
 def at_startup(sender, **kwargs): 
     celery_logger.info("Celery worker is ready to perform actions.")
 
-# Buckets was received, thank goodness.
-@celery.task
-def send_startup_message(msg):
-    file_name = f"{msg}_received.txt"
-    s3 = boto3.client('s3')
-    bucket_name = "coughoverflow-s3-23182020"
-    s3.put_object(
-        Bucket=bucket_name,
-        Key=file_name,
-        Body=b"Startup message received"
-    )
-    print(f"[Startup Message] {msg}")
-
-
 RETURN_FROM_ENGINE = {"covid-19": "covid", "healthy": "healthy", "h5n1": "h5n1"}
 @celery.task(name="do_analysis_normal")
 def analyse_image(msg):

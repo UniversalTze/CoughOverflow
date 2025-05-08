@@ -1,12 +1,10 @@
-import logging, boto3, watchtower, uuid, os
+import logging, boto3, watchtower, os
 import urllib.request # Downloading CSV file 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app_cough import healthrouter, labrouter, analysisrouter,resultRouter
-from app_cough import send_startup_message, utils
+from app_cough import utils
 from .models import engine, dbmodels, AsyncSessionLocal, schemas
-from pathlib import Path
-from sqlalchemy import select
 from celery import Celery
 from kombu import Queue
 
@@ -55,19 +53,7 @@ def generic_exception_handler(request: Request, exc: Exception):
 
 @app.on_event("startup")
 async def on_startup():
-    # Send a message to the queue
-
-    logger.info("sending message to queue normal")
-    send_startup_message.apply_async(
-        args=["Startup_complete_normal"], 
-        queue="cough-worker-normal.fifo"
-    )
-    logger.info("Sending message to urgent queue")
-    send_startup_message.apply_async(
-        args=["Startup_complete_urgent"], 
-        queue="cough-worker-urgent.fifo"
-    )
-    
+    # Create list of valid labs
     path, _ =  urllib.request.urlretrieve("https://csse6400.uqcloud.net/resources/labs.csv", "./app_cough/labs.csv")
 
     utils.load_valid_lab_set(path)
