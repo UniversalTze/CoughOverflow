@@ -57,7 +57,7 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       { "name": "NORMAL_QUEUE_MIN", "value": "2"},
       { "name": "NORMAL_QUEUE_MAX", "value": "10"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
-      { "name": "URGENT_QUEUE_MIN", "value": "2"},
+      { "name": "URGENT_QUEUE_MIN", "value": "3"},
       { "name": "URGENT_QUEUE_MAX", "value": "20"}
     ],
     "logConfiguration": { 

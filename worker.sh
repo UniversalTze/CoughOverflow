@@ -7,7 +7,7 @@ NORMAL_QUEUE_MIN=${NORMAL_QUEUE_MIN:-2}
 NORMAL_QUEUE_MAX=${NORMAL_QUEUE_MAX:-10}
 
 URGENT_QUEUE_NAME=${URGENT_QUEUE:-"cough-worker-urgent"}
-URGENT_QUEUE_MIN=${URGENT_QUEUE_MIN:-2}
+URGENT_QUEUE_MIN=${URGENT_QUEUE_MIN:-3}
 URGENT_QUEUE_MAX=${URGENT_QUEUE_MAX:-20}
 
 pipx run poetry run celery --app app_cough.tasks.analysis:celery worker --loglevel=info  -n worker_urgent@%h \
