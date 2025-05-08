@@ -14,11 +14,6 @@ engine = create_async_engine(SQLALCHEMY_DATABASE_URI, echo=True, pool_size=15, m
 AsyncSessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
-# Ensure schemas exist before creating tables
-#with async_engine.connect() as conn:
-#    conn.execute(text("CREATE SCHEMA IF NOT EXISTS schema_a")) #Change schema_a and b
-#    conn.execute(text("CREATE SCHEMA IF NOT EXISTS schema_b"))
-
 async def get_db():
     async with AsyncSessionLocal() as db:
         yield db

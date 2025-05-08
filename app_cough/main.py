@@ -56,7 +56,7 @@ def generic_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 async def on_startup():
     # Send a message to the queue
-    
+
     logger.info("sending message to queue normal")
     send_startup_message.apply_async(
         args=["Startup_complete_normal"], 
