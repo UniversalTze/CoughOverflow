@@ -85,6 +85,7 @@ resource "aws_appautoscaling_target" "coughoverflow-engine" { #uses string liter
   depends_on = [ aws_ecs_service.coughoverflow ] 
 }
 
+###### Scaling based on CPU usage
 resource "aws_appautoscaling_policy" "coughoverflow-engine-cpu" { 
   name                = "coughoverflow-cpu" 
   policy_type         = "TargetTrackingScaling" 
@@ -132,4 +133,94 @@ resource "aws_security_group" "coughoverflow_engine" {
   tags = { 
     Name = "coughoverflow_engine_security_group" 
   } 
+}
+
+################## Scaling Out
+resource "aws_cloudwatch_metric_alarm" "nornalqueue_scale_out" {
+  alarm_name          = "ecs-normalqueue-scale-out-on-queue-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 30
+  statistic           = "Average"
+  threshold           = 40
+  alarm_description   = "Scale out when visible messages > 40"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_normal.name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
+  alarm_name          = "ecs-urgentqueue-scale-out-on-queue-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 30
+  statistic           = "Average"
+  threshold           = 40
+  alarm_description   = "Scale out when visible messages > 40"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_urgent.name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "normal_queue_scale_in" {
+  alarm_name          = "scale-in-normal-queue"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 30
+  statistic           = "Average"
+  threshold           = 15
+  alarm_description   = "Scale in if normal queue has < 15 visible messages"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_normal.name
+  }
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "urgent_queue_scale_in" {
+  alarm_name          = "scale-in-urgent-queue"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 30
+  statistic           = "Average"
+  threshold           = 15
+  alarm_description   = "Scale in if urgent queue has < 15 visible messages"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_urgent.name
+  }
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" { 
+  name                = "queue-over-flow-scale-out" 
+  policy_type         = "StepScaling" 
+  resource_id         = aws_appautoscaling_target.coughoverflow-engine.id 
+  scalable_dimension  = aws_appautoscaling_target.coughoverflow-engine.scalable_dimension 
+  service_namespace   = aws_appautoscaling_target.coughoverflow-engine.service_namespace
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Average"
+
+    step_adjustment {
+      scaling_adjustment = 1
+      metric_interval_lower_bound = 40
+    }
+    step_adjustment {
+      scaling_adjustment = -1
+      metric_interval_upper_bound = 15
+    }
+  }
 }

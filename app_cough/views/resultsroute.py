@@ -99,9 +99,7 @@ async def get_patient_results(patient_id: str = Query(None, description="patient
     
     request_logs.info(f"End of get request for patient results at {utils.get_time()}")
     return JSONResponse(status_code=200, 
-                            content = { 
-                                "result": result
-                            })
+                            content=result)
 
 @resultRouter.get('/labs/results/{lab_id}')
 async def get_lab_results(lab_id: str,
@@ -191,9 +189,7 @@ async def get_lab_results(lab_id: str,
         result.append(analysis.dict())
     request_logs.info(f"End of get request for lab results at {utils.get_time()}")
     return JSONResponse(status_code=200, 
-                        content = { 
-                            "result": result
-                            }) 
+                        content=result) 
 
 @resultRouter.get('/labs/results/{lab_id}/summary')
 async def get_result_summary(lab_id: str, start: str = Query(None, description="start"), 
