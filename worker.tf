@@ -55,10 +55,10 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       },
       { "name": "NORMAL_QUEUE", "value": "cough-worker-normal.fifo"},
       { "name": "NORMAL_QUEUE_MIN", "value": "1"},
-      { "name": "NORMAL_QUEUE_MAX", "value": "4"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "6"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
       { "name": "URGENT_QUEUE_MIN", "value": "2"},
-      { "name": "URGENT_QUEUE_MAX", "value": "8"}
+      { "name": "URGENT_QUEUE_MAX", "value": "12"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
@@ -76,7 +76,7 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow-engine" { #uses string literals (api for different services)
-  max_capacity        = 8
+  max_capacity        = 12
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow-engine"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 
@@ -144,7 +144,7 @@ resource "aws_cloudwatch_metric_alarm" "nornalqueue_scale_out" {
   namespace           = "AWS/SQS"
   period              = 30
   statistic           = "Average"
-  threshold           = 40
+  threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_normal.name
@@ -161,7 +161,7 @@ resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
   namespace           = "AWS/SQS"
   period              = 30
   statistic           = "Average"
-  threshold           = 40
+  threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_urgent.name
@@ -216,8 +216,14 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
     step_adjustment {
       scaling_adjustment = 1
-      metric_interval_lower_bound = 40
+      metric_interval_lower_bound = 30
     }
+    # No-op for 15 <= x < 40
+    step_adjustment {
+      scaling_adjustment = 0
+      metric_interval_lower_bound = 15
+      metric_interval_upper_bound = 30
+}
     step_adjustment {
       scaling_adjustment = -1
       metric_interval_upper_bound = 15

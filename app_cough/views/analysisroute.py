@@ -1,4 +1,4 @@
-import boto3, base64, uuid, tempfile, logging
+import boto3, base64, uuid, tempfile, logging, aioboto3, aiofiles
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from fastapi.params import Query, Body
@@ -98,17 +98,17 @@ async def create_analysis(patient_id: str = Query(None, description="patient_id"
     # create a temp directory to store these results. 
     tmp_dir = tempfile.gettempdir()
     input_path = f"{tmp_dir}/{id_req}.jpg"
-    output = f"{tmp_dir}/{id_req}.txt" # Will delete this
     # write decoded image to .jpeg file
     with open(input_path, "wb") as f:
         f.write(decoded_img)
     
     # add to s3 bucket
     request_logs.info(f"Adding {id_req} .jpg to a bucket")
-    s3 = boto3.client('s3')
-    bucket_name = "coughoverflow-s3-23182020"
-    s3_key = f"{id_req}.jpg"
-    s3.upload_file(input_path, bucket_name, s3_key) #synchronous call
+    async with aioboto3.Session().client("s3") as s3:
+        bucket_name = "coughoverflow-s3-23182020"
+        s3_key = f"{id_req}.jpg"
+        async with aiofiles.open(input_path, "rb") as file_obj:
+            await s3.upload_fileobj(file_obj, bucket_name, s3_key)
     
     from app_cough.tasks import analysis 
     if urgent is None or urgent == False: 

@@ -4,11 +4,11 @@ set -e #exit script if error (fail fast)
 # Defaults in case ENV vars aren't set
 NORMAL_QUEUE_NAME=${NORMAL_QUEUE:-"cough-worker-normal"}
 NORMAL_QUEUE_MIN=${NORMAL_QUEUE_MIN:-1}
-NORMAL_QUEUE_MAX=${NORMAL_QUEUE_MAX:-4}
+NORMAL_QUEUE_MAX=${NORMAL_QUEUE_MAX:-6}
 
 URGENT_QUEUE_NAME=${URGENT_QUEUE:-"cough-worker-urgent"}
 URGENT_QUEUE_MIN=${URGENT_QUEUE_MIN:-2}
-URGENT_QUEUE_MAX=${URGENT_QUEUE_MAX:-8}
+URGENT_QUEUE_MAX=${URGENT_QUEUE_MAX:-12}
 
 pipx run poetry run celery --app app_cough.tasks.analysis:celery worker --loglevel=info  -n worker_urgent@%h \
     -Q "$URGENT_QUEUE_NAME" --autoscale="$URGENT_QUEUE_MAX,$URGENT_QUEUE_MIN" & 
