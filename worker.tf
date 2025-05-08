@@ -54,11 +54,11 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}"
       },
       { "name": "NORMAL_QUEUE", "value": "cough-worker-normal.fifo"},
-      { "name": "NORMAL_QUEUE_MIN", "value": "1"},
-      { "name": "NORMAL_QUEUE_MAX", "value": "6"},
+      { "name": "NORMAL_QUEUE_MIN", "value": "2"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "10"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
       { "name": "URGENT_QUEUE_MIN", "value": "2"},
-      { "name": "URGENT_QUEUE_MAX", "value": "12"}
+      { "name": "URGENT_QUEUE_MAX", "value": "20"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
