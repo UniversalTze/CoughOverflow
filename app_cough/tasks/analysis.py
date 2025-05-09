@@ -17,13 +17,17 @@ logger.setLevel(logging.INFO)
 celery = Celery("cough-analysis")
 celery.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
 celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
+normal = os.environ.get("NORMAL_QUEUE")
+urgent = os.environ.get("URGENT_QUEUE")
 celery.conf.task_queues = [
-    Queue("cough-worker-normal"),
-    Queue("cough-worker-urgent") 
+    Queue(normal),
+    Queue(urgent) 
 ]
-celery.conf.task_default_queue = "cough-worker-normal"
-# celery.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
+celery.conf.task_default_queue = normal
 celery.conf.task_track_started = True
+celery.conf.broker_transport_options = {
+    "visibility_timeout": 240
+}
 
 # Create CloudWatch log handler
 cloudwatch_handler = watchtower.CloudWatchLogHandler(
@@ -42,13 +46,20 @@ celery_logger.addHandler(cloudwatch_handler)
 def at_startup(sender, **kwargs): 
     celery_logger.info("Celery worker is ready to perform actions.")
 
-@celery.task(name="do_analysis_normal")
+@celery.task(name="do_analysis_normal") # @TODO, need to make a request id checker.
 def analyse_image(msg):
     time = datetime.now(timezone.utc)
-    celery_logger.info(f"Beginning normal analysis at {time}")
+    celery_logger.info(f"Beginning normal analysis at {time} for {msg}")
     normal = asyncio.new_event_loop()
     asyncio.set_event_loop(normal)
     try: 
+        checked = normal.run_until_complete(check_request_db(msg))
+        if (checked):
+            time = datetime.now(timezone.utc)
+            celery_logger.info(f"Request {msg} already processed — skipping. at {time}")
+            return
+        time = datetime.now(timezone.utc)
+        celery_logger.info(f"Request {msg} not found in db so process it at {time}")
         return normal.run_until_complete(analyse_image_task(msg))
     finally:
         normal.close()
@@ -56,7 +67,7 @@ def analyse_image(msg):
 @celery.task(name="do_analysis_urgent")
 def analyse_image_urgent(msg):
     time = datetime.now(timezone.utc)
-    celery_logger.info(f"Beginning urgent analysis at {time}")
+    celery_logger.info(f"Beginning urgent analysis at {time} for {msg}")
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try: 
@@ -65,17 +76,35 @@ def analyse_image_urgent(msg):
         loop.close()
 
 
-async def connect_db() -> AsyncSession:
-    engine = get_async_engine()
-    async_session = async_sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
-    return async_session()
-
 def get_async_engine():
     uri = os.getenv("SQLALCHEMY_DATABASE_URI")
     if not uri:
         raise RuntimeError("SQLALCHEMY_ASYNC_DATABASE_URI is not set")
     return create_async_engine(uri, echo=False, future=True, pool_size=2, max_overflow=0)
-    
+
+async def connect_db() -> AsyncSession:
+    engine = get_async_engine()
+    async_session = async_sessionmaker(bind=engine, expire_on_commit=False, class_=AsyncSession)
+    return async_session()
+
+async def check_request_db(req_id:str):
+    time = datetime.now(timezone.utc)
+    celery_logger.info(f"Checking DB for {req_id} at {time}")
+    db = await connect_db()
+    try: 
+        stmt = select(dbmodels.EngineRequest).where(dbmodels.EngineRequest.id == req_id)
+        result = await db.execute(stmt)
+        res = result.scalar_one_or_none()
+        if (res is None): 
+            new_req = dbmodels.EngineRequest(id=req_id)
+            db.add(new_req)
+            await db.commit()
+            await db.refresh(new_req)
+            return False
+        return True
+    finally: 
+        await db.close()
+
 async def update_db_async(res: str, req_id: str, db: AsyncSession):
     result = await db.execute(
         select(dbmodels.Request).where(dbmodels.Request.request_id == req_id)
@@ -98,8 +127,8 @@ async def download_image_s3_async(id: str) -> str:
 
     return save_path
 
-def run_engine(input_path, output_path) -> str:
-    celery_logger.info("Running engine")
+def run_engine(input_path, output_path, id) -> str:
+    celery_logger.info(f"Running engine analysis for {id}")
     result = subprocess.run(["./overflowengine", "--input", input_path, "--output", output_path], capture_output=True)
     if result.returncode != 0:
         return "failed"
@@ -114,7 +143,7 @@ async def analyse_image_task(id: str):
     tmp_dir = tempfile.gettempdir()
     output = f"{tmp_dir}/{id}.txt" # output result file 
 
-    result = await loop.run_in_executor(None, run_engine, saved_image, output)
+    result = await loop.run_in_executor(None, run_engine, saved_image, output, id)
     message = RETURN_FROM_ENGINE.get(result, "failed")
     db = await connect_db()
     try: 

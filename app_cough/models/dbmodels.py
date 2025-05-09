@@ -24,3 +24,7 @@ class Request(Base):
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+    
+class EngineRequest(Base): 
+    __tablename__ = "Engine_Requests"
+    id = Column(String, primary_key=True, index=True)
