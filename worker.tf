@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       "name": "SQLALCHEMY_SYNC_DATABASE_URI",
       "value": "postgresql://${local.database_username}:${local.database_password}@${aws_db_instance.coughoverflow_database.address}:${aws_db_instance.coughoverflow_database.port}/${aws_db_instance.coughoverflow_database.db_name}"
       },
-      { "name": "NORMAL_QUEUE", "value": "cough-worker-normal.fifo"},
+      { "name": "NORMAL_QUEUE", "value": "cough-worker-normal-queue"},
       { "name": "NORMAL_QUEUE_MIN", "value": "2"},
       { "name": "NORMAL_QUEUE_MAX", "value": "18"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
@@ -136,13 +136,13 @@ resource "aws_security_group" "coughoverflow_engine" {
 }
 
 ################## Scaling Out
-resource "aws_cloudwatch_metric_alarm" "nornalqueue_scale_out" {
+resource "aws_cloudwatch_metric_alarm" "normalqueue_scale_out" {
   alarm_name          = "ecs-normalqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 3
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 15
+  period              = 10
   statistic           = "Average"
   threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
@@ -156,10 +156,10 @@ resource "aws_cloudwatch_metric_alarm" "nornalqueue_scale_out" {
 resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
   alarm_name          = "ecs-urgentqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 3
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 15
+  period              = 10
   statistic           = "Average"
   threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
@@ -216,13 +216,13 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
     step_adjustment {
       scaling_adjustment = 1
-      metric_interval_lower_bound = 30
+      metric_interval_lower_bound = 75
     }
     # No-op for 15 <= x < 40
     step_adjustment {
       scaling_adjustment = 0
       metric_interval_lower_bound = 15
-      metric_interval_upper_bound = 30
+      metric_interval_upper_bound = 75
 }
     step_adjustment {
       scaling_adjustment = -1

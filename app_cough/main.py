@@ -29,11 +29,13 @@ request_logs.setLevel(level=logging.INFO)
 celery_app = Celery("cough-analysis")
 celery_app.conf.broker_url = os.environ.get("CELERY_BROKER_URL")
 celery_app.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND") 
+normal = os.environ.get("NORMAL_QUEUE")
+urgent = os.environ.get("URGENT_QUEUE")
 celery_app.conf.task_queues = [
-    Queue("cough-worker-normal"),
-    Queue("cough-worker-urgent") 
+    Queue(normal),
+    Queue(urgent) 
 ]
-celery_app.conf.task_default_queue = "cough-worker-normal"
+celery_app.conf.task_default_queue = normal
 
 ################################# Logging
 @app.exception_handler(Exception)
