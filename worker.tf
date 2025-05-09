@@ -55,10 +55,10 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       },
       { "name": "NORMAL_QUEUE", "value": "cough-worker-normal.fifo"},
       { "name": "NORMAL_QUEUE_MIN", "value": "2"},
-      { "name": "NORMAL_QUEUE_MAX", "value": "10"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "18"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
       { "name": "URGENT_QUEUE_MIN", "value": "3"},
-      { "name": "URGENT_QUEUE_MAX", "value": "20"}
+      { "name": "URGENT_QUEUE_MAX", "value": "25"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
@@ -142,7 +142,7 @@ resource "aws_cloudwatch_metric_alarm" "nornalqueue_scale_out" {
   evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 30
+  period              = 15
   statistic           = "Average"
   threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
@@ -159,7 +159,7 @@ resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
   evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 30
+  period              = 15
   statistic           = "Average"
   threshold           = 30
   alarm_description   = "Scale out when visible messages > 40"
@@ -211,7 +211,7 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 60
+    cooldown                = 30
     metric_aggregation_type = "Average"
 
     step_adjustment {
