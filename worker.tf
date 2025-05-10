@@ -55,10 +55,10 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       },
       { "name": "NORMAL_QUEUE", "value": "cough-worker-normal-queue"},
       { "name": "NORMAL_QUEUE_MIN", "value": "2"},
-      { "name": "NORMAL_QUEUE_MAX", "value": "8"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "6"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
       { "name": "URGENT_QUEUE_MIN", "value": "3"},
-      { "name": "URGENT_QUEUE_MAX", "value": "28"}
+      { "name": "URGENT_QUEUE_MAX", "value": "30"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
@@ -76,7 +76,7 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow-engine" { #uses string literals (api for different services)
-  max_capacity        = 8
+  max_capacity        = 7
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow-engine"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 
@@ -99,7 +99,7 @@ resource "aws_appautoscaling_policy" "coughoverflow-engine-cpu" {
     } 
     target_value              = 40    # CPU value %
     scale_in_cooldown         = 60
-    scale_out_cooldown        = 30 
+    scale_out_cooldown        = 45
   } 
 }
 
@@ -139,13 +139,13 @@ resource "aws_security_group" "coughoverflow_engine" {
 resource "aws_cloudwatch_metric_alarm" "normalqueue_scale_out" {
   alarm_name          = "ecs-normalqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 3
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
   period              = 10
   statistic           = "Average"
   threshold           = 50
-  alarm_description   = "Scale out when visible messages > 40"
+  alarm_description   = "Scale out when visible messages > 50"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_normal.name
   }
@@ -161,11 +161,45 @@ resource "aws_cloudwatch_metric_alarm" "normal_queue_scale_in" {
   namespace           = "AWS/SQS"
   period              = 30
   statistic           = "Average"
-  threshold           = 15
-  alarm_description   = "Scale in if normal queue has < 15 visible messages"
+  threshold           = 30
+  alarm_description   = "Scale in if normal queue has < 30 visible messages"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_normal.name
   }
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
+  alarm_name          = "ecs-urgentqueue-scale-out-on-queue-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 4
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 10
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "Scale out when visible messages > 80"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_urgent.name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_in" {
+  alarm_name          = "ecs-urgentqueue-scale-in-on-queue-depth"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 10
+  statistic           = "Average"
+  threshold           = 30
+  alarm_description   = "Scale in urgent queue has visible messages < 30"
+  dimensions = {
+    QueueName = aws_sqs_queue.worker_queue_urgent.name
+  }
+
   alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
 }
 
@@ -178,18 +212,18 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 30
+    cooldown                = 40
     metric_aggregation_type = "Average"
 
     step_adjustment {
       scaling_adjustment = 1
-      metric_interval_lower_bound = 70
+      metric_interval_lower_bound = 80
     }
-    # No-op for 15 <= x < 40
+    # No-op for 20 <= x < 80
     step_adjustment {
       scaling_adjustment = 0
       metric_interval_lower_bound = 20
-      metric_interval_upper_bound = 70
+      metric_interval_upper_bound = 80
 }
     step_adjustment {
       scaling_adjustment = -1
