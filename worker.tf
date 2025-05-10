@@ -55,10 +55,10 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
       },
       { "name": "NORMAL_QUEUE", "value": "cough-worker-normal-queue"},
       { "name": "NORMAL_QUEUE_MIN", "value": "2"},
-      { "name": "NORMAL_QUEUE_MAX", "value": "18"},
+      { "name": "NORMAL_QUEUE_MAX", "value": "8"},
       { "name": "URGENT_QUEUE", "value": "cough-worker-urgent.fifo"},
       { "name": "URGENT_QUEUE_MIN", "value": "3"},
-      { "name": "URGENT_QUEUE_MAX", "value": "25"}
+      { "name": "URGENT_QUEUE_MAX", "value": "28"}
     ],
     "logConfiguration": { 
       "logDriver": "awslogs", 
@@ -76,7 +76,7 @@ resource "aws_ecs_task_definition" "coughoverflow-engine" {  #docker file expose
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow-engine" { #uses string literals (api for different services)
-  max_capacity        = 12
+  max_capacity        = 8
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow-engine"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 
@@ -139,32 +139,15 @@ resource "aws_security_group" "coughoverflow_engine" {
 resource "aws_cloudwatch_metric_alarm" "normalqueue_scale_out" {
   alarm_name          = "ecs-normalqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
+  evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
   period              = 10
   statistic           = "Average"
-  threshold           = 30
+  threshold           = 50
   alarm_description   = "Scale out when visible messages > 40"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_normal.name
-  }
-
-  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
-}
-
-resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
-  alarm_name          = "ecs-urgentqueue-scale-out-on-queue-depth"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 10
-  statistic           = "Average"
-  threshold           = 30
-  alarm_description   = "Scale out when visible messages > 40"
-  dimensions = {
-    QueueName = aws_sqs_queue.worker_queue_urgent.name
   }
 
   alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
@@ -186,22 +169,6 @@ resource "aws_cloudwatch_metric_alarm" "normal_queue_scale_in" {
   alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
 }
 
-resource "aws_cloudwatch_metric_alarm" "urgent_queue_scale_in" {
-  alarm_name          = "scale-in-urgent-queue"
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 30
-  statistic           = "Average"
-  threshold           = 15
-  alarm_description   = "Scale in if urgent queue has < 15 visible messages"
-  dimensions = {
-    QueueName = aws_sqs_queue.worker_queue_urgent.name
-  }
-  alarm_actions = [aws_appautoscaling_policy.queue-overflow-step-scaling.arn]
-}
-
 resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" { 
   name                = "queue-over-flow-scale-out" 
   policy_type         = "StepScaling" 
@@ -216,17 +183,17 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
     step_adjustment {
       scaling_adjustment = 1
-      metric_interval_lower_bound = 75
+      metric_interval_lower_bound = 70
     }
     # No-op for 15 <= x < 40
     step_adjustment {
       scaling_adjustment = 0
-      metric_interval_lower_bound = 15
-      metric_interval_upper_bound = 75
+      metric_interval_lower_bound = 20
+      metric_interval_upper_bound = 70
 }
     step_adjustment {
       scaling_adjustment = -1
-      metric_interval_upper_bound = 15
+      metric_interval_upper_bound = 20
     }
   }
 }

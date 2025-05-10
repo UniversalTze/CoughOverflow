@@ -305,7 +305,7 @@ resource "aws_lb_listener" "coughoverflow" {
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (api for different services)
-  max_capacity        = 2
+  max_capacity        = 4
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 

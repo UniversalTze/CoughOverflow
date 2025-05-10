@@ -46,7 +46,7 @@ celery_logger.addHandler(cloudwatch_handler)
 def at_startup(sender, **kwargs): 
     celery_logger.info("Celery worker is ready to perform actions.")
 
-@celery.task(name="do_analysis_normal") # @TODO, need to make a request id checker.
+@celery.task(name="do_analysis_normal")
 def analyse_image(msg):
     time = datetime.now(timezone.utc)
     celery_logger.info(f"Beginning normal analysis at {time} for {msg}")
@@ -63,6 +63,7 @@ def analyse_image(msg):
         return normal.run_until_complete(analyse_image_task(msg))
     finally:
         normal.close()
+
 
 @celery.task(name="do_analysis_urgent")
 def analyse_image_urgent(msg):
