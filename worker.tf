@@ -188,7 +188,7 @@ resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
 
 resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_in" {
   alarm_name          = "ecs-urgentqueue-scale-in-on-queue-depth"
-  comparison_operator = "GreaterThanThreshold"
+  comparison_operator = "LessThanThreshold"
   evaluation_periods  = 3
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
