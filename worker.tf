@@ -139,7 +139,7 @@ resource "aws_security_group" "coughoverflow_engine" {
 resource "aws_cloudwatch_metric_alarm" "normalqueue_scale_out" {
   alarm_name          = "ecs-normalqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
+  evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
   period              = 10
@@ -172,7 +172,7 @@ resource "aws_cloudwatch_metric_alarm" "normal_queue_scale_in" {
 resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
   alarm_name          = "ecs-urgentqueue-scale-out-on-queue-depth"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 4
+  evaluation_periods  = 2
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
   period              = 10
