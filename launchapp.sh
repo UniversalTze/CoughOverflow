@@ -5,4 +5,4 @@ set -e  # stop on error
 python -m app_cough.models.initdb
 
 # Start app
-gunicorn app_cough.main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:6400
+gunicorn app_cough.main:app -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:6400
