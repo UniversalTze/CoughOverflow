@@ -156,10 +156,10 @@ resource "aws_cloudwatch_metric_alarm" "normalqueue_scale_out" {
 resource "aws_cloudwatch_metric_alarm" "normal_queue_scale_in" {
   alarm_name          = "scale-in-normal-queue"
   comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 2
+  evaluation_periods  = 3
   metric_name         = "ApproximateNumberOfMessagesVisible"
   namespace           = "AWS/SQS"
-  period              = 30
+  period              = 10
   statistic           = "Average"
   threshold           = 30
   alarm_description   = "Scale in if normal queue has < 30 visible messages"
@@ -212,7 +212,7 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
   step_scaling_policy_configuration {
     adjustment_type         = "ChangeInCapacity"
-    cooldown                = 40
+    cooldown                = 30
     metric_aggregation_type = "Average"
 
     step_adjustment {

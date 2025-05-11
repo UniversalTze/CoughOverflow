@@ -305,7 +305,7 @@ resource "aws_lb_listener" "coughoverflow" {
 
 ############################ Auto Scaling
 resource "aws_appautoscaling_target" "coughoverflow" { #uses string literals (api for different services)
-  max_capacity        = 7
+  max_capacity        = 8
   min_capacity        = 1 
   resource_id         = "service/coughoverflow/coughoverflow"  # resource_id = "service/<cluster_name>/<service_name>"
   scalable_dimension  = "ecs:service:DesiredCount" 
@@ -326,8 +326,8 @@ resource "aws_appautoscaling_policy" "coughoverflow-cpu" {
       predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
     } 
     target_value              = 20    # CPU value %
-    scale_in_cooldown         = 60
-    scale_out_cooldown        = 45 
+    scale_in_cooldown         = 30
+    scale_out_cooldown        = 20 
   } 
 }
 
