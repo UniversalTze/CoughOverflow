@@ -97,7 +97,7 @@ resource "aws_appautoscaling_policy" "coughoverflow-engine-cpu" {
     predefined_metric_specification { 
       predefined_metric_type  = "ECSServiceAverageCPUUtilization" 
     } 
-    target_value              = 40    # CPU value %
+    target_value              = 15    # CPU value % update this metric to 15%
     scale_in_cooldown         = 60
     scale_out_cooldown        = 45
   } 
@@ -177,8 +177,8 @@ resource "aws_cloudwatch_metric_alarm" "urgentqueue_scale_out" {
   namespace           = "AWS/SQS"
   period              = 10
   statistic           = "Average"
-  threshold           = 80
-  alarm_description   = "Scale out when visible messages > 80"
+  threshold           = 65
+  alarm_description   = "Scale out when visible messages > 65"
   dimensions = {
     QueueName = aws_sqs_queue.worker_queue_urgent.name
   }
@@ -217,13 +217,13 @@ resource "aws_appautoscaling_policy" "queue-overflow-step-scaling" {
 
     step_adjustment {
       scaling_adjustment = 1
-      metric_interval_lower_bound = 80
+      metric_interval_lower_bound = 50
     }
-    # No-op for 20 <= x < 80
+    # No-op for 20 <= x < 50
     step_adjustment {
       scaling_adjustment = 0
       metric_interval_lower_bound = 20
-      metric_interval_upper_bound = 80
+      metric_interval_upper_bound = 50
 }
     step_adjustment {
       scaling_adjustment = -1
