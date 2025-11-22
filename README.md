@@ -1,5 +1,5 @@
 # CoughOverflow
-Cough Overflow is a backend webserver use to handle client requests. 
+Cough Overflow is a backend REST API webserver that handles client requests. 
 
 Tech stack includes: 
 - Backend built in python using FastAPI framework.
