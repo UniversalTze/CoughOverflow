@@ -60,5 +60,6 @@ munity. They will query all the results from all the labs to generate their data
 areas. The system must remain responsive to analysis requests while processing the researcher’s queries.
 
 ### Results (K6 Tests)
+For stage 3 after deployment to AWS.
 ![img](results/Res1.png)
 ![img2](results/Res2.png)
