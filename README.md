@@ -3,8 +3,8 @@ Cough Overflow is a backend REST API server that handles client requests.
 
 Tech stack includes: 
 - Backend built in python using FastAPI framework.
-- Docker image has been made for this webserver. (Docker.yml)
-- Docker image for analysis engine was alsoc created.
+- Docker image has been made for this server. (Docker.yml)
+- Docker image for analysis engine was also created.
 - Deployed on AWS using Terraform. 
 
 ## CoughOverflow Pathogen Analysis Service
