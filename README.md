@@ -58,3 +58,7 @@ The server was then stress tested using k6 tests with these scenarios:
 - **Research Project**: A researcher wants to analyse the progression of how a disease spreads in the com-
 munity. They will query all the results from all the labs to generate their database of infections in different
 areas. The system must remain responsive to analysis requests while processing the researcher’s queries.
+
+### Results (K6 Tests)
+![img](results/Res1.png)
+![img2](results/Res2.png)
